@@ -16,8 +16,30 @@
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <signal.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "server/server.h"
 
-int main(int argc, char *args[]) {
-	return 0;
+// Just the main for the compiling
+// Everything else happens in the "server/server.c" file
+int main(int argc, char **args) {
+
+    char port[16];
+    if (parseArguments(argc, args, port) == EXIT_FAILURE)
+        return EXIT_FAILURE;
+
+    // REGISTERING THE STOP SIGNAL (CTRL+C)
+    signal(SIGINT, stopServer);
+    
+    // Create a ServerSocket the programm is listening to
+    if (initConnection(port) == EXIT_FAILURE)
+        return EXIT_FAILURE;
+
+    printf("Terminal Server started at port %s.\n", port);
+
+    serverLoop();
+
+    return EXIT_SUCCESS;
 }

@@ -15,16 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
-#include <netinet/in.h>
 
-int parseArguments(int argc, char **args, char *port);
+#include <pthread.h>
+#include <stdbool.h>
 
-int initConnection(char *port);
+#define IN_BUFFER_SIZE 4096
+#define OUT_BUFFER_SIZE 4096
 
-void serverLoop(void);
+struct clientData {
+    int clientSocket;
+    bool isConnected;
+    struct sockaddr_in *connectionInformation;
+    pthread_t *thread;
+    char *inBuffer;
+    char *outBuffer;
+    int position;
+};
 
-void stopServer(int signal);
+int getClientData(struct clientData *clientData, int clientSocket, struct sockaddr_in *connectionInformation);
 
-int addClient(int clientSocket, struct sockaddr_in *clientInformation);
-
-void *handleClient(void *arg);
+void clearClient(struct clientData *clientData);
