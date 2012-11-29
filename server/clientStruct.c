@@ -35,26 +35,24 @@ int createClientStruct(struct client *client, int clientSocket, struct sockaddr_
 
     // in buffer
     ptr = calloc(sizeof(char), IN_BUFFER_SIZE + 1);
-    //ptr = malloc(sizeof (char) * (IN_BUFFER_SIZE + 1 ));
     if (ptr == NULL) {
         free(client);
         perror("Can't allocate memory for client in buffer");
         return EXIT_FAILURE;
     }
-    //memset(bufferPointer, 0, sizeof(bufferPointer));
     client->inBuffer = ptr;
+    client->inBufferSize = IN_BUFFER_SIZE;
 
     // out buffer
-    ptr = calloc(sizeof(char), OUT_BUFFER_SIZE+1);
-    //ptr = malloc(sizeof (char) * (OUT_BUFFER_SIZE + 1 ));
+    ptr = calloc(sizeof(char), OUT_BUFFER_SIZE + 1);
     if (ptr == NULL) {
         free(client);
         free(client);
         perror("Can't allocate memory for client in buffer");
         return EXIT_FAILURE;
     }
-    //memset(bufferPointer, 0, sizeof(ptr));
     client->outBuffer = ptr;
+    client->outBufferSize = OUT_BUFFER_SIZE;
 
     return EXIT_SUCCESS;
 }

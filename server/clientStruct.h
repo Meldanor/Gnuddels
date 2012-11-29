@@ -17,6 +17,7 @@
  */
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 #define IN_BUFFER_SIZE 4096
 #define OUT_BUFFER_SIZE 4096
@@ -26,7 +27,9 @@ struct client {
     bool isConnected;
     struct sockaddr_in *conInfo;
     char *inBuffer;
+    size_t inBufferSize;
     char *outBuffer;
+    size_t outBufferSize;
 };
 
 int createClientStruct(struct client *client, int clientSocket, struct sockaddr_in *conInfo);
