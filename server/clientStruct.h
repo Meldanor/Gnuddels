@@ -16,22 +16,19 @@
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <pthread.h>
 #include <stdbool.h>
 
 #define IN_BUFFER_SIZE 4096
 #define OUT_BUFFER_SIZE 4096
 
-struct clientData {
-    int clientSocket;
+struct client {
+    int socket;
     bool isConnected;
-    struct sockaddr_in *connectionInformation;
-    pthread_t *thread;
+    struct sockaddr_in *conInfo;
     char *inBuffer;
     char *outBuffer;
-    int position;
 };
 
-int getClientData(struct clientData *clientData, int clientSocket, struct sockaddr_in *connectionInformation);
+int createClientStruct(struct client *client, int clientSocket, struct sockaddr_in *conInfo);
 
-void clearClient(struct clientData *clientData);
+void freeClient(struct client *client);

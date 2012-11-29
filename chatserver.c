@@ -26,8 +26,8 @@
 // Everything else happens in the "server/server.c" file
 int main(int argc, char **args) {
 
-    char port[16];
-    if (parseArguments(argc, args, port) == EXIT_FAILURE)
+    char *port;
+    if (parseArguments(argc, args, &port) == EXIT_FAILURE)
         return EXIT_FAILURE;
 
     // REGISTERING THE STOP SIGNAL (CTRL+C)

@@ -29,20 +29,13 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-#include <pthread.h>
-
 #include "server.h"
-#include "clientData.h"
 #include "../network/network.h"
 
-#define MAX_CLIENTS 64
-
 int serverSocket;
-bool serverIsRunning = true;
+static bool serverIsRunning = true;
 
-static struct clientData *clients[MAX_CLIENTS] = {NULL};
-
-int parseArguments(int argc, char **args, char *port) {
+int parseArguments(int argc, char **args, char **port) {
     // Not enough arguments
     if (argc < 3) {
         printf("Usage: %s -p Port\n", args[0]);
@@ -54,7 +47,7 @@ int parseArguments(int argc, char **args, char *port) {
 	while ((opt = getopt(argc, args, "p:")) != -1) {
 		switch (opt) {
 			case 'p':
-                *port = *optarg;
+                *port = optarg;
                 break;
             default:
                 fprintf(stderr, "Unknown paramater %c", opt);
@@ -110,95 +103,55 @@ void serverLoop(void) {
     // Main loop
     while (serverIsRunning) {
         // Struct for storing information about the client
-        struct sockaddr_in *connectionInformation = malloc(sizeof (struct sockaddr_in));
-        if (connectionInformation == NULL) {
+        struct sockaddr_in *conInfo = malloc(sizeof (struct sockaddr_in));
+
+        if (conInfo == NULL) {
             perror("Not enough memory!");
             break;
         }
         // BLOCKS UNTIL A CONNECTION IS INSIDE THE QUEUE
-        clientSocket = accept( serverSocket, (struct sockaddr*)(connectionInformation), &len);
+        clientSocket = accept(serverSocket, (struct sockaddr*)(conInfo), &len);
         if (clientSocket < 0 ) {
             perror("Can't accept a new client!");
             continue;
         }
         // Create new client and start handeling it
-        addClient(clientSocket, connectionInformation);
+        addClient(clientSocket, conInfo);
+        puts("New Client connected!");        
     }
 
     stopServer(EXIT_SUCCESS);
 }
 
-int addClient(int clientSocket, struct sockaddr_in *connectionInformation) {
-    struct clientData *clientData = malloc(sizeof (struct clientData));
+int addClient(int clientSocket, struct sockaddr_in *conInfo) {
+    struct client *client = malloc(sizeof (struct client));
     // not enought memory
-    if (clientData == NULL) {
+    if (client == NULL) {
         perror("Can't allocate memory for the clientData struct!");
         return EXIT_FAILURE;
     }
-    int result = 0;
-    // create data for the thread
-    getClientData(clientData, clientSocket, connectionInformation);
-
-    // Create thread
-    pthread_t *thread = malloc(sizeof(pthread_t));
-    if (thread == NULL) {
-        perror("Can't allocate memory for thread!");
-        return EXIT_FAILURE;
-    }
-    result = pthread_create(thread, NULL, &handleClient, clientData);
-    if (result != 0) {
-        perror("Can't create new thread for client!");
-        return EXIT_FAILURE;
-    }
-    clientData->thread = thread;
-    
-    // Add client to list
-    int i;
-    for (i = 0; i < MAX_CLIENTS; ++i) {
-        if (clients[i] == NULL) {
-            clients[i] = clientData;
-            clientData->position = i;
-            break;
-        }
-    }
+    // create in and out buffer for the client
+    createClientStruct(client, clientSocket, conInfo);
 
     return EXIT_SUCCESS;
 }
 
-void *handleClient(void *arg) {
-
-    puts("New Client connected!");
-    struct clientData *clientData = (struct clientData *)(arg);
+void handleClient(struct client *client) {
 
     // client loop
-    while (clientData->isConnected) {
+    while (client->isConnected) {
         // TODO: Implement chat logic    
     }
-    // CLOSE CONNECTION
-    close(clientData->clientSocket);
     // Free Memory
-    clients[clientData->position] = NULL;
-    clearClient(clientData);
+    freeClient(client);
 
     puts("Client disconnected");
-
-    return NULL;
 }
 
 void stopServer(int signal) {
 
     puts("Start server shutdown!");
-
-    int i;
-    int counter= 0;
-    for (i = 0 ; i < MAX_CLIENTS; ++i) {
-        if (clients[i] != NULL) {
-            close(clients[i]->clientSocket);
-            clearClient(clients[i]);
-            ++counter;
-        }
-    }
-    printf("%d Clients disconnected!\n", counter);
+    
     // CLOSE SERVER SOCKET
     close(serverSocket);
     puts("Closed server socket!");

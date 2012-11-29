@@ -15,9 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include "clientStruct.h"
+
 #include <netinet/in.h>
 
-int parseArguments(int argc, char **args, char *port);
+int parseArguments(int argc, char **args, char **port);
 
 int initConnection(char *port);
 
@@ -25,6 +28,6 @@ void serverLoop(void);
 
 void stopServer(int signal);
 
-int addClient(int clientSocket, struct sockaddr_in *clientInformation);
+int addClient(int clientSocket, struct sockaddr_in *conInfo);
 
-void *handleClient(void *arg);
+void handleClient(struct client *client);
