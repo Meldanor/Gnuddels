@@ -30,6 +30,7 @@ struct client {
     size_t inBufferSize;
     char *outBuffer;
     size_t outBufferSize;
+    int position;
 };
 
 int createClientStruct(struct client *client, int clientSocket, struct sockaddr_in *conInfo);

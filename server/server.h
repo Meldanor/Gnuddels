@@ -30,4 +30,6 @@ void stopServer(int signal);
 
 int addClient(int clientSocket, struct sockaddr_in *conInfo);
 
+void removeClient(struct client *client);
+
 void handleClient(struct client *client);

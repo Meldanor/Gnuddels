@@ -35,6 +35,9 @@
 int serverSocket;
 static bool serverIsRunning = true;
 
+static int clientCounter = 0;
+static struct client **clients = NULL;
+
 int parseArguments(int argc, char **args, char **port) {
     // Not enough arguments
     if (argc < 3) {
@@ -133,6 +136,20 @@ int addClient(int clientSocket, struct sockaddr_in *conInfo) {
     // create in and out buffer for the client
     createClientStruct(client, clientSocket, conInfo);
 
+    // Expand client list
+    struct client **ptr = realloc(clients, (clientCounter + 1) * sizeof(struct client));
+    if (ptr == NULL) {
+        perror("Not enough memory!");
+        return EXIT_FAILURE;
+    }
+    if (ptr != clients)
+        clients = ptr;
+    
+    // Add client to list
+    clients[clientCounter] = client;
+    client->position = clientCounter;
+    ++clientCounter;
+
     return EXIT_SUCCESS;
 }
 
@@ -142,16 +159,34 @@ void handleClient(struct client *client) {
     while (client->isConnected) {
         // TODO: Implement chat logic    
     }
+ 
+    removeClient(client);
+    puts("Client disconnected");
+}
+
+void removeClient(struct client *client) {
+    // Swap last position with current to free position
+    clients[client->position] = clients[clientCounter - 1];
+    clients[clientCounter - 1] = NULL;
+
+    // reduce client list
+    clients = realloc(clients, (clientCounter - 1) * sizeof(struct client));
+    --clientCounter;
+
     // Free Memory
     freeClient(client);
-
-    puts("Client disconnected");
 }
 
 void stopServer(int signal) {
 
     puts("Start server shutdown!");
-    
+
+    printf("Disconnect %d Clients", clientCounter);
+    int i;
+    for (i = 0; i < clientCounter ; ++i) {
+        freeClient(clients[i]);
+    }
+    free(clients);
     // CLOSE SERVER SOCKET
     close(serverSocket);
     puts("Closed server socket!");
