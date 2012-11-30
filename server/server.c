@@ -167,6 +167,7 @@ void handleClient(struct client *client) {
 void removeClient(struct client *client) {
     // Swap last position with current to free position
     clients[client->position] = clients[clientCounter - 1];
+    clients[clientCounter - 1]->position = client->position;
     clients[clientCounter - 1] = NULL;
 
     // reduce client list
