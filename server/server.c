@@ -20,14 +20,18 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <errno.h>
 
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <netinet/in.h>
 #include <netdb.h>
+
+#include <poll.h>
 
 #include "server.h"
 #include "../network/network.h"
@@ -61,6 +65,8 @@ int parseArguments(int argc, char **args, char **port) {
     return EXIT_SUCCESS;
 }
 
+struct pollfd *fds;
+
 int initConnection(char *port) {
 
     // Information about the connection type
@@ -84,45 +90,96 @@ int initConnection(char *port) {
         perror("Can't create new socket!");
         return EXIT_FAILURE;
     }
+
+    int on = 1;
+    // Set socket to be nonblocking
+    if (ioctl(serverSocket, FIONBIO, (char *)&on) < 0) {
+        perror("ioctl() failed");
+        return EXIT_FAILURE;
+    }
+
     // Bind the Server to the Socket
     if (bind(serverSocket, res->ai_addr, res->ai_addrlen) == -1) {
         perror("Can't bind the server to the socket!");
         return EXIT_FAILURE;
     }
+
     // Free Memory
     freeaddrinfo(res);
 
     // Start Listening to the Socket    
     listen(serverSocket, SOMAXCONN);
-    
+
+    fds = calloc(1, sizeof(struct pollfd));
+    if (fds == NULL) {
+        perror("Unable to locate memory!");
+        return EXIT_FAILURE;
+    }
+    fds[0].fd = serverSocket;
+    fds[0].events = POLLIN;
     return EXIT_SUCCESS;
 }
 
+int nfds = 1;
+
 void serverLoop(void) {
 
-    int clientSocket;
     socklen_t len = sizeof(struct sockaddr_in);
-
+    int result = 0;
     // Main loop
     while (serverIsRunning) {
-        // Struct for storing information about the client
-        struct sockaddr_in *conInfo = malloc(sizeof (struct sockaddr_in));
-
-        if (conInfo == NULL) {
-            perror("Not enough memory!");
+        result = poll(fds, nfds, -1);
+        // Poll has failed
+        if (result < 0) {
+            perror("poll() failed!");
             break;
         }
-        // BLOCKS UNTIL A CONNECTION IS INSIDE THE QUEUE
-        clientSocket = accept(serverSocket, (struct sockaddr*)(conInfo), &len);
-        if (clientSocket < 0 ) {
-            perror("Can't accept a new client!");
+        // Poll Timed out
+        if (result == 0)
             continue;
+        int i = 0;
+        int curSize = nfds;
+        // Look what registered FileDescriptor has is readable
+        for (i = 0 ; i < curSize; ++i) {
+            // FileDescriptor has no event
+            if (fds[i].revents == 0)
+                continue;
+            // FileDescriptor has other event as registered!
+            if (fds[i].revents != POLLIN) {
+                serverIsRunning = false;
+                break;
+            }
+            // Server socket has something to read -> new connection
+            if (fds[i].fd == serverSocket) {
+                // Accept all connections in the queue            
+                // Do this until the error EWOULDBLOCK occurs
+                do {
+                    struct sockaddr_in *conInfo = malloc(sizeof (struct sockaddr_in));
+                    if (conInfo == NULL) {
+                        perror("Not enough memory!");
+                        break;
+                    }
+                    // Pull new connection from connection stack
+                    result = accept(serverSocket, (struct sockaddr*)(conInfo), &len);
+                    if (result < 0) {
+                        // Another error as EWOULDBLOCK happened
+                        if (errno != EWOULDBLOCK) {
+                            perror(" accept() failed!");
+                            serverIsRunning = false;
+                        }
+                        break;
+                    }
+                    // Create new client
+                    addClient(result,conInfo);
+                } while (result != -1);
+            }
+            // Client want to send something
+            else {
+                // TODO: Implement complete client handeling logic
+            }
         }
-        // Create new client and start handeling it
-        addClient(clientSocket, conInfo);
-        puts("New Client connected!");        
     }
-
+    
     stopServer(EXIT_SUCCESS);
 }
 
@@ -144,6 +201,18 @@ int addClient(int clientSocket, struct sockaddr_in *conInfo) {
     }
     if (ptr != clients)
         clients = ptr;
+
+    struct pollfd *ptr2 = realloc(fds, (nfds + 1) * sizeof(struct pollfd));
+    if (ptr == NULL) {
+        perror(" not enough memory!");
+        return EXIT_FAILURE;
+    }
+    if (ptr2 != fds) 
+        fds = ptr2;
+
+    fds[nfds].fd = clientSocket;
+    fds[nfds].events = POLLIN;
+    ++nfds;
     
     // Add client to list
     clients[clientCounter] = client;
