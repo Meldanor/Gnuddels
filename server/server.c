@@ -175,7 +175,17 @@ void serverLoop(void) {
             }
             // Client want to send something
             else {
-                // TODO: Implement complete client handeling logic
+                // Search for the client who want to send something and handle it
+                struct client *client = NULL;
+                int j = 0;
+                for (j = 0; j < clientCounter ; ++j) {
+                    if (clients[j]->socket == fds[i].fd) {
+                        client = clients[j];
+                        break;
+                    }
+                }
+                if (client != NULL)
+                    handleClient(client);
             }
         }
     }
@@ -202,6 +212,9 @@ int addClient(int clientSocket, struct sockaddr_in *conInfo) {
     if (ptr != clients)
         clients = ptr;
 
+    // Add new client socket to poll structure
+    // Poll listens to all registered clients and need the sockets and events
+    // Expand poll structure for one new client
     struct pollfd *ptr2 = realloc(fds, (nfds + 1) * sizeof(struct pollfd));
     if (ptr == NULL) {
         perror(" not enough memory!");
@@ -210,6 +223,7 @@ int addClient(int clientSocket, struct sockaddr_in *conInfo) {
     if (ptr2 != fds) 
         fds = ptr2;
 
+    // Register new poll
     fds[nfds].fd = clientSocket;
     fds[nfds].events = POLLIN;
     ++nfds;
