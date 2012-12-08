@@ -23,6 +23,8 @@ SERVER_VERSION = 0.0.1-SNAPSHOT
 
 APPS = $(CLIENT) $(SERVER)
 
+COMMON = network/network.c 
+
 apps: createBuildDir $(APPS) cleanBuild
 
 createBuildDir:
@@ -35,7 +37,7 @@ chatgui.o: chatgui.c
 	$(CC) -c $(CFLAGS) $(GTKCFLAGS) -o $(SERVER) $^
 	
 $(SERVER): chatserver.c
-	$(CC) chatserver.c -Wall -Iinclude -pthread -o bin/$@ server/*.c
+	$(CC) chatserver.c -Wall -Iinclude -pthread -o bin/$@ server/*.c $(COMMON)
 
 .PHONY: clean
 

@@ -65,7 +65,11 @@ int parseArguments(int argc, char **args, char **port) {
     return EXIT_SUCCESS;
 }
 
-struct pollfd *fds;
+// Struct for poll
+// Struct Array is always one bigger than there are connected clients(First Element is the ServerSocket)
+static struct pollfd *fds;
+// Current File Descriptors in poll
+static int nfds;
 
 int initConnection(char *port) {
 
@@ -110,17 +114,11 @@ int initConnection(char *port) {
     // Start Listening to the Socket    
     listen(serverSocket, SOMAXCONN);
 
-    fds = calloc(1, sizeof(struct pollfd));
-    if (fds == NULL) {
-        perror("Unable to locate memory!");
-        return EXIT_FAILURE;
-    }
-    fds[0].fd = serverSocket;
-    fds[0].events = POLLIN;
+    // Init Poll Structure with one element
+    // First element is always the server socket
+    increasePollArray(serverSocket);
     return EXIT_SUCCESS;
 }
-
-int nfds = 1;
 
 void serverLoop(void) {
 
@@ -179,6 +177,7 @@ void serverLoop(void) {
                 struct client *client = NULL;
                 int j = 0;
                 for (j = 0; j < clientCounter ; ++j) {
+                    // Have found new client
                     if (clients[j]->socket == fds[i].fd) {
                         client = clients[j];
                         break;
@@ -186,6 +185,10 @@ void serverLoop(void) {
                 }
                 if (client != NULL)
                     handleClient(client);
+                else {
+                    perror("Unknown FD in client array!");
+                    break;
+                }
             }
         }
     }
@@ -211,40 +214,79 @@ int addClient(int clientSocket, struct sockaddr_in *conInfo) {
     }
     if (ptr != clients)
         clients = ptr;
-
-    // Add new client socket to poll structure
-    // Poll listens to all registered clients and need the sockets and events
-    // Expand poll structure for one new client
-    struct pollfd *ptr2 = realloc(fds, (nfds + 1) * sizeof(struct pollfd));
-    if (ptr == NULL) {
-        perror(" not enough memory!");
-        return EXIT_FAILURE;
-    }
-    if (ptr2 != fds) 
-        fds = ptr2;
-
-    // Register new poll
-    fds[nfds].fd = clientSocket;
-    fds[nfds].events = POLLIN;
-    ++nfds;
-    
+        
     // Add client to list
     clients[clientCounter] = client;
     client->position = clientCounter;
     ++clientCounter;
 
+    // Add new client socket to poll structure
+    // Poll listens to all registered clients and need the sockets and events
+    // Expand poll structure for one new client
+    if (increasePollArray(clientSocket) == EXIT_FAILURE)
+        return EXIT_FAILURE;
+
     return EXIT_SUCCESS;
 }
 
+int increasePollArray(int newFileDescriptor) {
+    struct pollfd *ptr = realloc(fds, (nfds + 1) * sizeof(struct pollfd));
+    // Not enough memory!
+    if (ptr == NULL) {
+        perror(" not enough memory to increase poll array!");
+        return EXIT_FAILURE;     
+    }
+    // New location in Memory
+    if (ptr != fds)
+        fds = ptr;
+
+    fds[nfds].fd = newFileDescriptor;
+    // Wait for Incoming Data
+    fds[nfds].events = POLLIN;
+    ++nfds;
+
+    return EXIT_SUCCESS;
+}
+
+// Complete server logic
 void handleClient(struct client *client) {
 
-    // client loop
-    while (client->isConnected) {
-        // TODO: Implement chat logic    
+    // Size of message from client
+    int recBytes = 0;
+    // Read the complete message from client
+    if (readFromClient(client, &recBytes) == EXIT_FAILURE) {
+        removeClient(client);
+        return;
     }
- 
-    removeClient(client);
-    puts("Client disconnected");
+}
+
+int readFromClient(struct client *client, int *recBytes) {
+    int curRecBytes;
+    int recBytesTotal;
+    do {
+        // Read until the error WOULD BLOCk occurs(poll strategy)
+        curRecBytes = recv(client->socket, (client->inBuffer) + recBytesTotal, (client->inBufferSize) - recBytesTotal, 0);
+        // Error occured
+        if (curRecBytes < 0) {
+            // Unexpeteced error -> disconnect client
+            if (errno != EWOULDBLOCK) {
+                perror (" recv() failed!");
+                return EXIT_FAILURE;
+            }
+            break;
+        }
+        recBytesTotal += curRecBytes;
+        client->inBuffer[recBytesTotal] = '\0';
+        // buffer to low!
+        if (recBytesTotal == client->inBufferSize) {
+            // TODO: Handle buffer overflow
+            return EXIT_FAILURE;
+        }
+    } while(true);
+
+    // Write total read byte count to the parameter
+    *recBytes = recBytesTotal;
+    return EXIT_SUCCESS;
 }
 
 void removeClient(struct client *client) {
@@ -256,7 +298,32 @@ void removeClient(struct client *client) {
     // reduce client list
     clients = realloc(clients, (clientCounter - 1) * sizeof(struct client));
     --clientCounter;
-
+    
+    // Reduce Poll Structure
+    int i;
+    // Search for matching poll structure
+    for (i = 1 ; i < nfds ; ++i) {
+        if (fds[i].fd == client->socket)
+            break;
+    }
+    if (i == nfds) {
+        perror("Unknown FD in client array!");
+    }
+    else {
+        // Swap last position with fd to delete
+        fds[i] = fds[nfds-1];
+        
+        // Reduce Poll Array by one element(the last one)
+        struct pollfd *ptr = realloc(fds, (nfds - 1) * sizeof(struct pollfd));
+        // Not enough memory!
+        if (ptr == NULL) {
+            perror(" not enough memory to decrease poll array!");
+            return;
+        }
+        // New location in Memory
+        if (ptr != fds)
+            fds = ptr;
+    }
     // Free Memory
     freeClient(client);
 }

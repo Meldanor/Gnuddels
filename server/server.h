@@ -33,3 +33,7 @@ int addClient(int clientSocket, struct sockaddr_in *conInfo);
 void removeClient(struct client *client);
 
 void handleClient(struct client *client);
+
+int readFromClient(struct client *client, int *recBytes);
+
+int increasePollArray(int newFileDescriptor);
