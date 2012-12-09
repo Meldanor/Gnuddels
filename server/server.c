@@ -105,6 +105,12 @@ int initConnection(char *port) {
         perror("ioctl() failed");
         return EXIT_FAILURE;
     }
+    
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&flag, sizeof(flag)) < 0) {
+        perror("setsockopt() failed");
+        close(serverSocket);
+        return EXIT_FAILURE;
+    }
 
     // Bind the Server to the Socket
     if (bind(serverSocket, res->ai_addr, res->ai_addrlen) == -1) {
@@ -210,8 +216,9 @@ void serverLoop(void) {
                     }
                 }
                 // Handeling client
-                if (client != NULL)
-                    handleClient(client);
+                if (client != NULL) {
+                    handleClient(client);                    
+                }
                 else {
                     perror("Unknown FD in client array!");
                     break;
@@ -252,6 +259,8 @@ int addClient(int clientSocket, struct sockaddr_in *conInfo) {
     // Expand poll structure for one new client
     if (increasePollArray(clientSocket) == EXIT_FAILURE)
         return EXIT_FAILURE;
+        
+    printf("New client(FD=%d) connected!\n", client->socket);
 
     return EXIT_SUCCESS;
 }
@@ -316,10 +325,29 @@ int increasePollArray(int fd) {
     return EXIT_SUCCESS;
 }
 
+// Complete server logic
+void handleClient(struct client *client) {
+
+    // Size of message from client
+    int recBytes = 0;
+    // Read the complete message from client
+    if (readFromClient(client, &recBytes) == EXIT_FAILURE) {
+        removeClient(client);
+        return;
+    }
+    if (recBytes == 0) {
+        printf("Disconnect client %d\n", client->socket);
+        removeClient(client);
+        return;
+    }
+}
+
 int readFromClient(struct client *client, int *recBytes) {
     int curRecBytes;
-    int recBytesTotal;
-    do {
+    int recBytesTotal = 0;
+    // TODO: This doesn't work as well
+    // TODO: OutComment do-while loop when error is found
+    //do {
         // Read until the error WOULD BLOCk occurs(poll strategy)
         curRecBytes = recv(client->socket, (client->inBuffer) + recBytesTotal, (client->inBufferSize) - recBytesTotal, 0);
         // Error occured
@@ -329,7 +357,7 @@ int readFromClient(struct client *client, int *recBytes) {
                 perror (" recv() failed!");
                 return EXIT_FAILURE;
             }
-            break;
+            //break;
         }
         // Client closed connection
         if (curRecBytes == 0) {
@@ -345,33 +373,10 @@ int readFromClient(struct client *client, int *recBytes) {
             // TODO: Handle buffer overflow
             return EXIT_FAILURE;
         }
-    } while(true); // This will terminate when the client has send everything in his buffer
+   // } while(true); // This will terminate when the client has send everything in his buffer
 
     // Write total read byte count to the parameter
     *recBytes = recBytesTotal;
 
     return EXIT_SUCCESS;
-}
-
-// Complete server logic
-void handleClient(struct client *client) {
-
-    // Size of message from client
-    int recBytes = 0;
-    // Read the complete message from client
-    if (readFromClient(client, &recBytes) == EXIT_FAILURE) {
-        removeClient(client);
-        return;
-    }
-    if (recBytes == 0) {
-        prinf("Disconnect client %d\n", client->socket);
-        removeClient(client);
-        return;
-    }
-    // Test -> Send data back!
-    if (sendAll(client->socket, client->inBuffer, recBytes) == EXIT_FAILURE) {
-        perror(" sendAll() failed!");
-        removeClient(client);
-        return;
-    }
 }
