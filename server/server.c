@@ -363,4 +363,15 @@ void handleClient(struct client *client) {
         removeClient(client);
         return;
     }
+    if (recBytes == 0) {
+        prinf("Disconnect client %d\n", client->socket);
+        removeClient(client);
+        return;
+    }
+    // Test -> Send data back!
+    if (sendAll(client->socket, client->inBuffer, recBytes) == EXIT_FAILURE) {
+        perror(" sendAll() failed!");
+        removeClient(client);
+        return;
+    }
 }
