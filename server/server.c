@@ -42,6 +42,10 @@ static bool serverIsRunning = true;
 static int clientCounter = 0;
 static struct client **clients = NULL;
 
+// **************************** //
+// Initionalization and Startup //
+// **************************** //
+
 int parseArguments(int argc, char **args, char **port) {
     // Not enough arguments
     if (argc < 3) {
@@ -65,10 +69,9 @@ int parseArguments(int argc, char **args, char **port) {
     return EXIT_SUCCESS;
 }
 
-// Struct for poll
-// Struct Array is always one bigger than there are connected clients(First Element is the ServerSocket)
+// Array for poll() - Stores all registered filedescriptors and its listening events
 static struct pollfd *fds;
-// Current File Descriptors in poll
+// Size of the Array
 static int nfds;
 
 int initConnection(char *port) {
@@ -76,10 +79,10 @@ int initConnection(char *port) {
     // Information about the connection type
     struct addrinfo hints;
     memset(&hints, 0 , sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC; // IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM; // TCP
-    hints.ai_flags = AI_PASSIVE; // Listen to socket -> Allow every ip
-    hints.ai_protocol = 0; // Any protocol of TCP is allowed
+    hints.ai_family = AF_UNSPEC;        // IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM;    // TCP
+    hints.ai_flags = AI_PASSIVE;        // Listen to socket -> Allow every ip
+    hints.ai_protocol = 0;              // Any protocol of TCP is allowed
     
     // Store information in struct "res"
     struct addrinfo *res;
@@ -95,9 +98,10 @@ int initConnection(char *port) {
         return EXIT_FAILURE;
     }
 
-    int on = 1;
+    // Flag for nonblocking
+    int flag = 1;
     // Set socket to be nonblocking
-    if (ioctl(serverSocket, FIONBIO, (char *)&on) < 0) {
+    if (ioctl(serverSocket, FIONBIO, (char *)&flag) < 0) {
         perror("ioctl() failed");
         return EXIT_FAILURE;
     }
@@ -114,19 +118,41 @@ int initConnection(char *port) {
     // Start Listening to the Socket    
     listen(serverSocket, SOMAXCONN);
 
-    // Init Poll Structure with one element
-    // First element is always the server socket
+    // Init poll() array with one element (the server socket)
     increasePollArray(serverSocket);
     return EXIT_SUCCESS;
 }
 
+void stopServer(int signal) {
+
+    puts("Start server shutdown!");
+
+    printf("Disconnect %d Clients", clientCounter);
+    int i;
+    for (i = 0; i < clientCounter ; ++i) {
+        freeClient(clients[i]);
+    }
+    free(clients);
+    // CLOSE SERVER SOCKET
+    close(serverSocket);
+    puts("Closed server socket!");
+    puts("Finished server shutdown!");
+    exit(signal);
+}
+
+// **************************** //
+// *** Connection Handeling *** //
+// **************************** //
+
+#define TIMEOUT -1
+
 void serverLoop(void) {
 
     socklen_t len = sizeof(struct sockaddr_in);
-    int result = 0;
+    int result;
     // Main loop
     while (serverIsRunning) {
-        result = poll(fds, nfds, -1);
+        result = poll(fds, nfds, TIMEOUT);
         // Poll has failed
         if (result < 0) {
             perror("poll() failed!");
@@ -183,6 +209,7 @@ void serverLoop(void) {
                         break;
                     }
                 }
+                // Handeling client
                 if (client != NULL)
                     handleClient(client);
                 else {
@@ -229,71 +256,10 @@ int addClient(int clientSocket, struct sockaddr_in *conInfo) {
     return EXIT_SUCCESS;
 }
 
-int increasePollArray(int newFileDescriptor) {
-    struct pollfd *ptr = realloc(fds, (nfds + 1) * sizeof(struct pollfd));
-    // Not enough memory!
-    if (ptr == NULL) {
-        perror(" not enough memory to increase poll array!");
-        return EXIT_FAILURE;     
-    }
-    // New location in Memory
-    if (ptr != fds)
-        fds = ptr;
-
-    fds[nfds].fd = newFileDescriptor;
-    // Wait for Incoming Data
-    fds[nfds].events = POLLIN;
-    ++nfds;
-
-    return EXIT_SUCCESS;
-}
-
-// Complete server logic
-void handleClient(struct client *client) {
-
-    // Size of message from client
-    int recBytes = 0;
-    // Read the complete message from client
-    if (readFromClient(client, &recBytes) == EXIT_FAILURE) {
-        removeClient(client);
-        return;
-    }
-}
-
-int readFromClient(struct client *client, int *recBytes) {
-    int curRecBytes;
-    int recBytesTotal;
-    do {
-        // Read until the error WOULD BLOCk occurs(poll strategy)
-        curRecBytes = recv(client->socket, (client->inBuffer) + recBytesTotal, (client->inBufferSize) - recBytesTotal, 0);
-        // Error occured
-        if (curRecBytes < 0) {
-            // Unexpeteced error -> disconnect client
-            if (errno != EWOULDBLOCK) {
-                perror (" recv() failed!");
-                return EXIT_FAILURE;
-            }
-            break;
-        }
-        recBytesTotal += curRecBytes;
-        client->inBuffer[recBytesTotal] = '\0';
-        // buffer to low!
-        if (recBytesTotal == client->inBufferSize) {
-            // TODO: Handle buffer overflow
-            return EXIT_FAILURE;
-        }
-    } while(true);
-
-    // Write total read byte count to the parameter
-    *recBytes = recBytesTotal;
-    return EXIT_SUCCESS;
-}
-
 void removeClient(struct client *client) {
     // Swap last position with current to free position
     clients[client->position] = clients[clientCounter - 1];
     clients[clientCounter - 1]->position = client->position;
-    clients[clientCounter - 1] = NULL;
 
     // reduce client list
     clients = realloc(clients, (clientCounter - 1) * sizeof(struct client));
@@ -328,19 +294,73 @@ void removeClient(struct client *client) {
     freeClient(client);
 }
 
-void stopServer(int signal) {
-
-    puts("Start server shutdown!");
-
-    printf("Disconnect %d Clients", clientCounter);
-    int i;
-    for (i = 0; i < clientCounter ; ++i) {
-        freeClient(clients[i]);
+int increasePollArray(int fd) {
+    // Expand poll() array by one new element
+    struct pollfd *ptr = realloc(fds, (nfds + 1) * sizeof(struct pollfd));
+    // Not enough memory!
+    if (ptr == NULL) {
+        perror(" not enough memory to increase poll array!");
+        return EXIT_FAILURE;     
     }
-    free(clients);
-    // CLOSE SERVER SOCKET
-    close(serverSocket);
-    puts("Closed server socket!");
-    puts("Finished server shutdown!");
-    exit(signal);
+    // New location in Memory
+    if (ptr != fds)
+        fds = ptr;
+
+    // Register the fileDescriptor to poll()
+    fds[nfds].fd = fd;
+    // Wait for Incoming Data
+    fds[nfds].events = POLLIN;
+
+    ++nfds;
+
+    return EXIT_SUCCESS;
+}
+
+int readFromClient(struct client *client, int *recBytes) {
+    int curRecBytes;
+    int recBytesTotal;
+    do {
+        // Read until the error WOULD BLOCk occurs(poll strategy)
+        curRecBytes = recv(client->socket, (client->inBuffer) + recBytesTotal, (client->inBufferSize) - recBytesTotal, 0);
+        // Error occured
+        if (curRecBytes < 0) {
+            // Unexpeteced error -> disconnect client
+            if (errno != EWOULDBLOCK) {
+                perror (" recv() failed!");
+                return EXIT_FAILURE;
+            }
+            break;
+        }
+        // Client closed connection
+        if (curRecBytes == 0) {
+            *recBytes = 0;
+            return EXIT_SUCCESS;
+        }
+            
+        recBytesTotal += curRecBytes;
+        // Null-Terminate that String!
+        client->inBuffer[recBytesTotal] = '\0';
+        // buffer size to low!
+        if (recBytesTotal == client->inBufferSize) {
+            // TODO: Handle buffer overflow
+            return EXIT_FAILURE;
+        }
+    } while(true); // This will terminate when the client has send everything in his buffer
+
+    // Write total read byte count to the parameter
+    *recBytes = recBytesTotal;
+
+    return EXIT_SUCCESS;
+}
+
+// Complete server logic
+void handleClient(struct client *client) {
+
+    // Size of message from client
+    int recBytes = 0;
+    // Read the complete message from client
+    if (readFromClient(client, &recBytes) == EXIT_FAILURE) {
+        removeClient(client);
+        return;
+    }
 }

@@ -36,4 +36,4 @@ void handleClient(struct client *client);
 
 int readFromClient(struct client *client, int *recBytes);
 
-int increasePollArray(int newFileDescriptor);
+int increasePollArray(int fd);
