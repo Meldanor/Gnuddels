@@ -129,7 +129,7 @@ int initConnection(char *port) {
     return EXIT_SUCCESS;
 }
 
-#include "../common/commands/Commands.h"
+#include "commands/Commands.h"
 
 int registerCommands(void) {
     registerCommand("/nick", nickCmd);

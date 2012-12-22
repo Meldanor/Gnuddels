@@ -20,11 +20,12 @@
 
 struct Command {
     int argsSize;
-    char **args;    
+    char **args;
+    struct client *caller;
 };
 
 bool isCommand(char *message);
 
 bool registerCommand(const char *prefix, bool (*execute)(struct Command *));
 
-bool executeCommand(const char *msg);
+bool executeCommand(const char *msg, struct client *caller);

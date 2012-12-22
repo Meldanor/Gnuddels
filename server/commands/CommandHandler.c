@@ -58,7 +58,7 @@ bool registerCommand(const char *prefix, bool (*execute)(struct Command *)) {
     return true;
 }
 
-bool executeCommand(const char *msg) {
+bool executeCommand(const char *msg, struct client *caller) {
 
     // Split message to single arguments
     char **args = NULL;
@@ -104,6 +104,7 @@ bool executeCommand(const char *msg) {
             struct Command command;
             command.argsSize = argc - 1;
             command.args = (args + 1);
+            command.caller = caller;
             commands[i]->execute(&command);
             break;
         }
