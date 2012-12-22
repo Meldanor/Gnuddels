@@ -37,10 +37,10 @@ int main(int argc, char **args) {
     if (initConnection(port) == EXIT_FAILURE)
         return EXIT_FAILURE;
         
-    if (registerCommands() == EXIT_FAILURE);
+    if (registerCommands() == EXIT_FAILURE)
         return EXIT_FAILURE;
 
-    printf("Terminal Server started at port %s.\n", port);
+    printf("Gnuddels Server started at port %s.\n", port);
 
     serverLoop();
 

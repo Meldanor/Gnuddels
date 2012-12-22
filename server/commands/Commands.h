@@ -20,6 +20,8 @@
 
 #include "CommandHandler.h"
 
+#define UNKNOWN_COMMAND "Unknown Command!"
+
 bool nickCmd(struct Command *command);
 
 bool whisperCmd(struct Command *command);

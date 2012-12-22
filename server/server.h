@@ -36,6 +36,8 @@ void removeClient(struct client *client);
 
 void handleClient(struct client *client);
 
+bool broadcastMessage(struct client *sender, int length);
+
 int readFromClient(struct client *client, int *recBytes);
 
 int increasePollArray(int fd);

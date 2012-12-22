@@ -186,7 +186,6 @@ void serverLoop(void) {
                 continue;
             // FileDescriptor has other event as registered!
             if (fds[i].revents != POLLIN) {
-                serverIsRunning = false;
                 break;
             }
             // Server socket has something to read -> new connection
@@ -345,11 +344,43 @@ void handleClient(struct client *client) {
         removeClient(client);
         return;
     }
+
     if (recBytes == 0) {
         printf("Disconnect client %d\n", client->socket);
         removeClient(client);
         return;
     }
+    if (isCommand(client->inBuffer)) {
+        // Try to execute the command. Returns false, when command not found
+        if (!executeCommand(client->inBuffer, client)) {
+            sendAll(client->socket, UNKNOWN_COMMAND, strlen(UNKNOWN_COMMAND));
+        }
+    }
+    else {
+        broadcastMessage(client, recBytes);
+    }
+}
+
+bool broadcastMessage(struct client *sender, int length) {
+    int i;
+    // Message is Length of message to send plus 32 chars for the nickname
+    char *message = calloc(length + 32, sizeof(char));
+    strcat(message, "$Nickname$:");
+    char *temp = message + strlen(message);
+    strncpy(temp, sender->inBuffer, length);
+    length = strlen(message);
+    for (i = 0 ; i < clientCounter; ++i) {
+        //if (clients[i]->socket != sender->socket) {
+            if (sendAll(clients[i]->socket, message, length)) {
+                perror(" brodcastMessage() failed!");
+                return false;
+            }
+        //}
+    }
+    
+    free(message);
+    
+    return true;
 }
 
 int readFromClient(struct client *client, int *recBytes) {
