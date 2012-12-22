@@ -16,22 +16,15 @@
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
-#include "CommandHandler.h"
+#include <stdbool.h>
 
+struct Command {
+    int argsSize;
+    char **args;    
+};
 
-bool isCommand(char *message) {
-    return message[0] == '/';
-}
+bool isCommand(char *message);
 
-bool executeCommand(char *message) {
- 
-    // TODO: implement searching for the command and execute it
-    return false;
-}
+bool registerCommand(const char *prefix, bool (*execute)(struct Command *));
 
-bool registerCommand(char *prefix, bool (*execute)(int, char **)) {
-
-    // TODO: Implement adding the command to an intern list
-    return false;
-}
+bool executeCommand(const char *msg);

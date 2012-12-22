@@ -129,6 +129,16 @@ int initConnection(char *port) {
     return EXIT_SUCCESS;
 }
 
+#include "../common/commands/Commands.h"
+
+int registerCommands(void) {
+    registerCommand("/nick", nickCmd);
+    registerCommand("/list", listCmd);
+    registerCommand("/msg", whisperCmd);
+    
+    return EXIT_SUCCESS;
+}
+
 void stopServer(int signal) {
 
     puts("Start server shutdown!");

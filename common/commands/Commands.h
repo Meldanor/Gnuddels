@@ -18,8 +18,10 @@
 
 #include <stdbool.h>
 
-bool isCommand(char *message);
+#include "CommandHandler.h"
 
-bool executeCommand(char *message);
+bool nickCmd(struct Command *command);
 
-bool registerCommand(char *prefix, bool (*execute)(int, char **));
+bool whisperCmd(struct Command *command);
+
+bool listCmd(struct Command *command);

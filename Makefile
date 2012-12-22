@@ -23,7 +23,7 @@ SERVER_VERSION = 0.0.1-SNAPSHOT
 
 APPS = $(CLIENT) $(SERVER)
 
-COMMON = network/network.c common/*.c
+COMMON = network/network.c common/commands/*.c
 
 apps: createBuildDir $(APPS) cleanBuild
 

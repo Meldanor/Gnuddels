@@ -36,6 +36,9 @@ int main(int argc, char **args) {
     // Create a ServerSocket the programm is listening to
     if (initConnection(port) == EXIT_FAILURE)
         return EXIT_FAILURE;
+        
+    if (registerCommands() == EXIT_FAILURE);
+        return EXIT_FAILURE;
 
     printf("Terminal Server started at port %s.\n", port);
 

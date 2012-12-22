@@ -15,27 +15,20 @@
  * You should have received a copy of the GNU General Public License
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
+ 
+#include "Commands.h"
 
-#include "clientStruct.h"
+bool nickCmd(struct Command *command) {
+    // TODO: Implement: Change nick of the command caller
+    return false;
+}
 
-#include <netinet/in.h>
+bool whisperCmd(struct Command *command) {
+    // TODO: Implement: Whisper to other people
+    return false;
+}
 
-int parseArguments(int argc, char **args, char **port);
-
-int initConnection(char *port);
-
-int registerCommands(void);
-
-void serverLoop(void);
-
-void stopServer(int signal);
-
-int addClient(int clientSocket, struct sockaddr_in *conInfo);
-
-void removeClient(struct client *client);
-
-void handleClient(struct client *client);
-
-int readFromClient(struct client *client, int *recBytes);
-
-int increasePollArray(int fd);
+bool listCmd(struct Command *command) {
+    // TODO: Implement: List all current user on the server
+    return false;
+}
