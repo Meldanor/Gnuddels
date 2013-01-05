@@ -26,23 +26,5 @@
 // Everything else happens in the "server/server.c" file
 int main(int argc, char **args) {
 
-    char *port;
-    if (parseArguments(argc, args, &port) == EXIT_FAILURE)
-        return EXIT_FAILURE;
-
-    // REGISTERING THE STOP SIGNAL (CTRL+C)
-    signal(SIGINT, stopServer);
-    
-    // Create a ServerSocket the programm is listening to
-    if (initConnection(port) == EXIT_FAILURE)
-        return EXIT_FAILURE;
-        
-    if (registerCommands() == EXIT_FAILURE)
-        return EXIT_FAILURE;
-
-    printf("Gnuddels Server started at port %s.\n", port);
-
-    serverLoop();
-
     return EXIT_SUCCESS;
 }

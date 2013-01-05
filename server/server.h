@@ -19,25 +19,3 @@
 #include "clientStruct.h"
 
 #include <netinet/in.h>
-
-int parseArguments(int argc, char **args, char **port);
-
-int initConnection(char *port);
-
-int registerCommands(void);
-
-void serverLoop(void);
-
-void stopServer(int signal);
-
-int addClient(int clientSocket, struct sockaddr_in *conInfo);
-
-void removeClient(struct client *client);
-
-void handleClient(struct client *client);
-
-bool broadcastMessage(struct client *sender, int length);
-
-int readFromClient(struct client *client, int *recBytes);
-
-int increasePollArray(int fd);
