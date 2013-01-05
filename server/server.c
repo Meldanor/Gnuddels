@@ -35,3 +35,38 @@
 
 #include "server.h"
 #include "../common/network/network.h"
+
+// ****************************************************
+// This methodes are called when the server is starting
+// ****************************************************
+int init(int argc, char **args) {
+
+    char *port;
+    if (parseArguments(argc, args, &port) == EXIT_FAILURE)
+        return EXIT_FAILURE;
+
+    return EXIT_SUCCESS;
+}
+
+int parseArguments(int argc, char **args, char **port) {
+    // Not enough arguments
+    if (argc < 3) {
+        printf("Usage: %s -p Port\n", args[0]);
+        return EXIT_FAILURE;
+    }
+
+    // Parse arguments
+    int opt;
+	while ((opt = getopt(argc, args, "p:")) != -1) {
+		switch (opt) {
+			case 'p':
+                *port = optarg;
+                break;
+            default:
+                fprintf(stderr, "Unknown paramater %c", opt);
+                return EXIT_FAILURE;
+		}
+	}
+	
+	return EXIT_SUCCESS;
+}

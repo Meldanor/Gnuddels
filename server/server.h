@@ -19,3 +19,7 @@
 #include "clientStruct.h"
 
 #include <netinet/in.h>
+
+int init(int argc, char **args);
+
+int parseArguments(int argc, char **args, char **port);

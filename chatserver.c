@@ -16,15 +16,15 @@
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <signal.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "server/server.h"
 
 // Just the main for the compiling
 // Everything else happens in the "server/server.c" file
 int main(int argc, char **args) {
+    if (init(argc, args) == EXIT_FAILURE)
+        return EXIT_FAILURE;
 
     return EXIT_SUCCESS;
 }
