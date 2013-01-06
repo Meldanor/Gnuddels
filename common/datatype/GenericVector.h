@@ -1,14 +1,14 @@
 #include <stdlib.h> 
 
-#define DefVector(type) \
-typedef struct T_##type##Vector { \
+#define DefVector(type, name) \
+typedef struct T_##name##Vector { \
     type *elements; \
     int size, capacity; \
-} type##Vector; \
+} name##Vector; \
 \
-static type##Vector* \
-type##Vector_construct(int capacity){ \
-    type##Vector *s = malloc(sizeof(type##Vector)); \
+static name##Vector* \
+name##Vector_construct(int capacity){ \
+    name##Vector *s = malloc(sizeof(name##Vector)); \
     if (s == NULL) \
         return NULL; \
     s->elements = malloc(sizeof(type) * capacity); \
@@ -22,7 +22,7 @@ type##Vector_construct(int capacity){ \
 \
 \
 static int \
-type##Vector_resize(type##Vector *vector, int newSize) { \
+name##Vector_resize(name##Vector *vector, int newSize) { \
     if (vector == NULL) { \
         perror("vector is null!"); \
         return EXIT_FAILURE; \
@@ -39,14 +39,14 @@ type##Vector_resize(type##Vector *vector, int newSize) { \
 } \
 \
 static int \
-type##Vector_add(type##Vector *vector, type e) { \
+name##Vector_add(name##Vector *vector, type e) { \
     if (vector == NULL) { \
         perror("vector is null!"); \
         return EXIT_FAILURE; \
     } \
     /* Vector is full */ \
     if (vector->size == vector->capacity) { \
-        if (type##Vector_resize(vector, vector->capacity * 2) == EXIT_FAILURE) { \
+        if (name##Vector_resize(vector, vector->capacity * 2) == EXIT_FAILURE) { \
             return EXIT_FAILURE; \
         } \
     } \
@@ -58,7 +58,7 @@ type##Vector_add(type##Vector *vector, type e) { \
 } \
 \
 static type* \
-type##Vector_get(type##Vector *vector, int index) { \
+name##Vector_get(name##Vector *vector, int index) { \
     if (vector == NULL) { \
         perror("vector is null!"); \
         return NULL; \
@@ -71,7 +71,7 @@ type##Vector_get(type##Vector *vector, int index) { \
 } \
 \
 static type* \
-type##Vector_removeAt(type##Vector *vector, int index, type *holder) { \
+name##Vector_removeAt(name##Vector *vector, int index, type *holder) { \
     if (vector == NULL) { \
         perror("vector is null!"); \
         return NULL; \
@@ -91,7 +91,7 @@ type##Vector_removeAt(type##Vector *vector, int index, type *holder) { \
     vector->size = vector->size - 1; \
     /* Vector is only a quarter full -> resize it to half size */ \
     if ((vector->capacity / 4) == vector->size) { \
-        if (type##Vector_resize(vector, vector->capacity / 2) == EXIT_FAILURE) { \
+        if (name##Vector_resize(vector, vector->capacity / 2) == EXIT_FAILURE) { \
             return NULL; \
         } \
     } \
@@ -100,7 +100,7 @@ type##Vector_removeAt(type##Vector *vector, int index, type *holder) { \
 } \
 \
 static int \
-type##Vector_remove(type##Vector *vector, type *e, int (*equals)(type *e1, type *e2)) { \
+name##Vector_remove(name##Vector *vector, type *e, int (*equals)(type *e1, type *e2)) { \
     if (vector == NULL) { \
         perror("vector is null!"); \
         return EXIT_FAILURE; \
@@ -108,7 +108,7 @@ type##Vector_remove(type##Vector *vector, type *e, int (*equals)(type *e1, type 
     int i; \
     for (i = 0 ; i < vector->size; ++i) { \
         if (((*equals)(e, &(vector->elements[i]))) == 0) { \
-            type##Vector_removeAt(vector, i, NULL); \
+            name##Vector_removeAt(vector, i, NULL); \
             return EXIT_SUCCESS; \
         } \
     } \
@@ -116,7 +116,7 @@ type##Vector_remove(type##Vector *vector, type *e, int (*equals)(type *e1, type 
 } \
 \
 static int \
-type##Vector_contains(type##Vector *vector, type *e, int (*equals)(type *e1, type *e2)) { \
+name##Vector_contains(name##Vector *vector, type *e, int (*equals)(type *e1, type *e2)) { \
     if (vector == NULL) { \
         perror("vector is null!"); \
         return EXIT_FAILURE; \
