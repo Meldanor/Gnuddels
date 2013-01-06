@@ -224,29 +224,35 @@ serverLoop(void) {
 int
 accept_newClient() {
 
-    // Accept new client
-    int clientSocket = accept(serverSocket, NULL, NULL);
-    if (clientSocket < 0) {
-        perror("accept failed!");
-        return EXIT_FAILURE;
+    // Accept new clients in the connection queue
+    while (1) {
+        // Get one single client from the queue
+        int clientSocket = accept(serverSocket, NULL, NULL);
+        if (clientSocket < 0) {
+            if (errno == EWOULDBLOCK) {
+                break;
+            }
+            perror("accept failed!");
+            return EXIT_FAILURE;
+        }
+
+        // Flag for nonblocking
+        int flag = 1;
+        // Set socket to be nonblocking
+        if (ioctl(clientSocket, FIONBIO, (char *)&flag) < 0) {
+            perror("ioctl() failed");
+            close(clientSocket);
+            return EXIT_FAILURE;
+        }
+
+        // Add client to pollList
+        struct pollfd pollfd;
+        pollfd.fd = clientSocket;
+        pollfd.events = POLLIN;
+        pollVector_add(pollList, pollfd);
+
+        printf("Client %d connected\n", clientSocket);
     }
-
-    // Flag for nonblocking
-    int flag = 1;
-    // Set socket to be nonblocking
-    if (ioctl(clientSocket, FIONBIO, (char *)&flag) < 0) {
-        perror("ioctl() failed");
-        close(clientSocket);
-        return EXIT_FAILURE;
-    }
-
-    // Add client to pollList
-    struct pollfd pollfd;
-    pollfd.fd = clientSocket;
-    pollfd.events = POLLIN;
-    pollVector_add(pollList, pollfd);
-
-    printf("Client %d connected\n", clientSocket);
     return EXIT_SUCCESS;
 }
 
