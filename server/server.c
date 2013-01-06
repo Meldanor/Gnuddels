@@ -37,9 +37,12 @@
 #include "../common/network/network.h"
 #include "../common/datatype/GenericVector.h"
 
-// ****************************************************
-// This methodes are called when the server is starting
-// ****************************************************
+// *******************************************************
+// Methods only called when server is starting / stopping
+// *******************************************************
+
+static int serverSocket;
+
 int init(int argc, char **args) {
 
     puts("Start Server...");
@@ -49,11 +52,10 @@ int init(int argc, char **args) {
         return EXIT_FAILURE;
 
     puts("Initiating connection...");
-    int serverSocket;
-    if (initConnection(port, &serverSocket) == EXIT_FAILURE)
+    if (initConnection(port) == EXIT_FAILURE)
         return EXIT_FAILURE;
         
-    if (initPoll(serverSocket) == EXIT_FAILURE) {
+    if (initPoll() == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
     printf("Gnuddels-Server started on the port %s!\n", port);
@@ -84,7 +86,7 @@ int parseArguments(int argc, char **args, char **port) {
 	return EXIT_SUCCESS;
 }
 
-int initConnection(char *port, int *serverSocket) {
+int initConnection(char *port) {
     
     // Information about the connection type
     struct addrinfo hints;
@@ -102,8 +104,8 @@ int initConnection(char *port, int *serverSocket) {
     }
     
     // Create Socket with the stored information
-    *serverSocket = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (*serverSocket < 0 ) {
+    serverSocket = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (serverSocket < 0 ) {
         perror("Can't create new socket!");
         return EXIT_FAILURE;
     }
@@ -111,21 +113,21 @@ int initConnection(char *port, int *serverSocket) {
     // Flag for nonblocking
     int flag = 1;
     // Set socket to be nonblocking
-    if (ioctl(*serverSocket, FIONBIO, (char *)&flag) < 0) {
+    if (ioctl(serverSocket, FIONBIO, (char *)&flag) < 0) {
         perror("ioctl() failed");
-        close(*serverSocket);
+        close(serverSocket);
         return EXIT_FAILURE;
     }
     
     // Make address of the server reusable (nice for debugging)
-    if (setsockopt(*serverSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&flag, sizeof(flag)) < 0) {
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&flag, sizeof(flag)) < 0) {
         perror("setsockopt() failed");
-        close(*serverSocket);
+        close(serverSocket);
         return EXIT_FAILURE;
     }
 
     // Bind the Server to the Socket
-    if (bind(*serverSocket, res->ai_addr, res->ai_addrlen) == -1) {
+    if (bind(serverSocket, res->ai_addr, res->ai_addrlen) == -1) {
         perror("Can't bind the server to the socket!");
         return EXIT_FAILURE;
     }
@@ -134,7 +136,7 @@ int initConnection(char *port, int *serverSocket) {
     freeaddrinfo(res);
 
     // Start Listening to the Socket    
-    listen(*serverSocket, SOMAXCONN);
+    listen(serverSocket, SOMAXCONN);
 
     return EXIT_SUCCESS;
 }
@@ -143,7 +145,7 @@ DefVector(struct pollfd, poll);
 static pollVector *pollList;
 
 int
-initPoll(int serverSocket) {
+initPoll() {
     // init list for poll structs
     pollList = pollVector_construct(1);
     if (pollList == NULL) {
@@ -158,13 +160,100 @@ initPoll(int serverSocket) {
     return EXIT_SUCCESS;
 }
 
-// ****************************************************
-// This methodes are called when the server is running
-// ****************************************************
+void stopServer(void) {
+
+    puts("Stopping server...");
+    puts("Close socket...");
+    close(serverSocket);
+}
+
+// *******************************************
+// Methods called when the server is running
+// *******************************************
+
+#define INFINITE_TIMEOUT -1
 
 void
 serverLoop(void) {
+
     while (true) {
-        
+        // res stores the numbers of file descriptors throwed an event
+        int res = poll(pollList->elements, pollList->size, INFINITE_TIMEOUT);
+        // Poll returns without any events
+        if (res == 0) {
+            continue;
+        }
+        if (res < 0) {
+            perror("poll failed!");
+            break;
+        }
+        int i;
+        struct pollfd *pollfd = NULL;
+        for (i = 0 ; i < pollList->size; ++i) {
+            pollfd = pollVector_get(pollList, i);
+            // This fd didn't fired an event
+            if (pollfd->revents == 0) {
+                continue;
+            }
+            // The fd want to send something
+            if ((pollfd->revents & POLLIN) == POLLIN) {
+                // New client want to connect
+                if (pollfd->fd == serverSocket) {
+                    // try to accept new client
+                    if (accept_newClient() == EXIT_FAILURE) {
+                        return;
+                    }
+                }
+                // Connected client want to send something
+                else {
+                    if (handle_client(pollfd->fd) == EXIT_FAILURE) {
+                        // TODO: Remove client from server
+                        return;
+                    }
+                }
+            }
+            // Unregistered poll event was thrown
+            else {
+                fprintf(stderr, "Unkown poll event %d! Server is stopping", pollfd->revents);
+                return;
+            }
+        }
     }
 }
+
+int
+accept_newClient() {
+
+    // Accept new client
+    int clientSocket = accept(serverSocket, NULL, NULL);
+    if (clientSocket < 0) {
+        perror("accept failed!");
+        return EXIT_FAILURE;
+    }
+
+    // Flag for nonblocking
+    int flag = 1;
+    // Set socket to be nonblocking
+    if (ioctl(clientSocket, FIONBIO, (char *)&flag) < 0) {
+        perror("ioctl() failed");
+        close(clientSocket);
+        return EXIT_FAILURE;
+    }
+
+    // Add client to pollList
+    struct pollfd pollfd;
+    pollfd.fd = clientSocket;
+    pollfd.events = POLLIN;
+    pollVector_add(pollList, pollfd);
+
+    printf("Client %d connected\n", clientSocket);
+    return EXIT_SUCCESS;
+}
+
+int
+handle_client(int socket) {
+    // TODO: Implement server logic
+    printf("Client %d sent something\n", socket);;
+    return EXIT_SUCCESS;
+}
+

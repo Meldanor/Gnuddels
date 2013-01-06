@@ -20,12 +20,22 @@
 
 #include <netinet/in.h>
 
+// Methods only called when server is starting / stopping
+
 int init(int argc, char **args);
 
 int parseArguments(int argc, char **args, char **port);
 
-int initConnection(char *port, int *serverSocket);
+int initConnection(char *port);
 
-int initPoll(int serverSocket);
+int initPoll();
+
+void stopServer(void);
+
+// Methods called when the server is running
 
 void serverLoop(void);
+
+int accept_newClient();
+
+int handle_client(int socket);

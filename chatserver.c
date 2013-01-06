@@ -26,6 +26,10 @@ int main(int argc, char **args) {
 
     if (init(argc, args) == EXIT_FAILURE)
         return EXIT_FAILURE;
+        
+    serverLoop();
+    
+    stopServer();
 
     return EXIT_SUCCESS;
 }
