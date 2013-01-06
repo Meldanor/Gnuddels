@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <chatgui.h>
+#include <stdlib.h>
 
 #include "client/client.h"
 
@@ -40,7 +41,10 @@ int main(int argc, char *args[]) {
 		fprintf(stderr, "Failed to start GUI -- exiting\n");
 		return -1;
 	}
-
+	
+    if (initClient(argc, args) == EXIT_FAILURE)
+        return EXIT_FAILURE;
+    
 	while (1) {
 		int len = read(infd, buf, BUFSIZE);  // read input from GUI
 		if (len <= 0) {
@@ -53,5 +57,6 @@ int main(int argc, char *args[]) {
     // (C) 2012 Timo Lindhorst <lindhors@ivs.cs.ovgu.de>  
     // Copied from original 
     
-	return 0;
+    stopClient();
+	return EXIT_SUCCESS;
 }

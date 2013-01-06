@@ -15,3 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
+  
+// Methods only called when client is starting / stopping
+
+int initClient(int argc, char **args);
+
+int parseArguments(int argc, char **args, char **host, char **port);
+
+int initConnection(char *host, char *port);
+
+int initPoll();
+
+void stopClient(void);
+

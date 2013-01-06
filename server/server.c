@@ -310,3 +310,9 @@ handle_client(int socket) {
     return EXIT_SUCCESS;
 }
 
+int
+read_from_client(int socket) {
+    // TODO: Implement reading from a client
+    return EXIT_SUCCESS;
+}
+

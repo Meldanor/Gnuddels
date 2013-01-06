@@ -31,7 +31,7 @@ createBuildDir:
 	mkdir -p bin
 
 $(CLIENT): chatclient.o
-	$(CC) $(LDFLAGS) $^ $(LDLIBS) $(GTKLDLIBS) -o bin/$(CLIENT) client/*.c
+	$(CC) $(LDFLAGS) $^ $(LDLIBS) $(GTKLDLIBS) -o bin/$(CLIENT) client/*.c $(COMMON)$
 
 chatgui.o: chatgui.c
 	$(CC) -c $(CFLAGS) $(GTKCFLAGS) -o $(SERVER) $^

@@ -18,8 +18,6 @@
 
 #include "clientStruct.h"
 
-#include <netinet/in.h>
-
 // Methods only called when server is starting / stopping
 
 int init(int argc, char **args);
