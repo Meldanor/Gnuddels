@@ -38,4 +38,6 @@ void serverLoop(void);
 
 int accept_newClient();
 
+int remove_client(int socket);
+
 int handle_client(int socket);

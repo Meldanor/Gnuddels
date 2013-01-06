@@ -35,6 +35,7 @@
 
 #include "server.h"
 #include "../common/network/network.h"
+#include "../common/StringBuffer.h"
 #include "../common/datatype/GenericVector.h"
 
 // *******************************************************
@@ -173,6 +174,8 @@ void stopServer(void) {
 
 #define INFINITE_TIMEOUT -1
 
+#define CLIENT_DISCONNECTED -2 
+
 void
 serverLoop(void) {
 
@@ -206,9 +209,22 @@ serverLoop(void) {
                 }
                 // Connected client want to send something
                 else {
-                    if (handle_client(pollfd->fd) == EXIT_FAILURE) {
-                        // TODO: Remove client from server
-                        return;
+                    // Read it's input and handle it
+                    int cRes = handle_client(pollfd->fd);
+                    // Client disconnected
+                    if (cRes == CLIENT_DISCONNECTED) {
+                        printf("Client %d disconnected\n", pollfd->fd);
+                        remove_client(pollfd->fd);
+                        --i;
+                    }
+                    // An error occurred
+                    else if (cRes == EXIT_FAILURE) {
+                        printf("Client %d crashed!\n", pollfd->fd);
+                        remove_client(pollfd->fd);
+                        --i;
+                    }
+                    else {
+                        // Do Nothing
                     }
                 }
             }
@@ -256,10 +272,41 @@ accept_newClient() {
     return EXIT_SUCCESS;
 }
 
+int equals_pollfd(struct pollfd *fd1, struct pollfd *fd2) {
+    return (fd1->fd == fd2->fd ? 0 : -1);
+}
+
+int
+remove_client(int socket) {
+
+    // Close the socket
+    close(socket);
+    struct pollfd temp;
+    temp.fd = socket;
+    // Remove it from the poll list
+    pollVector_remove(pollList, &temp, &equals_pollfd);
+    return EXIT_SUCCESS;
+}
+
 int
 handle_client(int socket) {
-    // TODO: Implement server logic
-    printf("Client %d sent something\n", socket);;
+    // TODO: Improve buffer management
+    char buffer[4096] = {0};
+    while(1) {
+        int bytes_read = read(socket, buffer, 4096);
+        if (bytes_read == 0) {
+            return CLIENT_DISCONNECTED;
+        }
+        if (bytes_read < 0) {
+            if (errno == EWOULDBLOCK) {
+                return EXIT_SUCCESS;
+            }
+            perror("read failed!");
+            return EXIT_FAILURE;
+        }
+        printf("Client %d sent something\n", socket);
+    }
+
     return EXIT_SUCCESS;
 }
 
