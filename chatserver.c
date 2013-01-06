@@ -23,6 +23,7 @@
 // Just the main for the compiling
 // Everything else happens in the "server/server.c" file
 int main(int argc, char **args) {
+
     if (init(argc, args) == EXIT_FAILURE)
         return EXIT_FAILURE;
 
