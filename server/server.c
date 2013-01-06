@@ -35,6 +35,7 @@
 
 #include "server.h"
 #include "../common/network/network.h"
+#include "../common/datatype/GenericVector.h"
 
 // ****************************************************
 // This methodes are called when the server is starting
@@ -51,7 +52,10 @@ int init(int argc, char **args) {
     int serverSocket;
     if (initConnection(port, &serverSocket) == EXIT_FAILURE)
         return EXIT_FAILURE;
-
+        
+    if (initPoll(serverSocket) == EXIT_FAILURE) {
+        return EXIT_FAILURE;
+    }
     printf("Gnuddels-Server started on the port %s!\n", port);
 
     return EXIT_SUCCESS;
@@ -133,4 +137,34 @@ int initConnection(char *port, int *serverSocket) {
     listen(*serverSocket, SOMAXCONN);
 
     return EXIT_SUCCESS;
+}
+
+DefVector(struct pollfd, poll);
+static pollVector *pollList;
+
+int
+initPoll(int serverSocket) {
+    // init list for poll structs
+    pollList = pollVector_construct(1);
+    if (pollList == NULL) {
+        return EXIT_FAILURE;
+    }
+    // add pollstruct to list
+    struct pollfd serverPollfd;
+    serverPollfd.fd = serverSocket;
+    serverPollfd.events = POLLIN;    
+    pollVector_add(pollList, serverPollfd);
+    
+    return EXIT_SUCCESS;
+}
+
+// ****************************************************
+// This methodes are called when the server is running
+// ****************************************************
+
+void
+serverLoop(void) {
+    while (true) {
+        
+    }
 }

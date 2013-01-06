@@ -25,3 +25,7 @@ int init(int argc, char **args);
 int parseArguments(int argc, char **args, char **port);
 
 int initConnection(char *port, int *serverSocket);
+
+int initPoll(int serverSocket);
+
+void serverLoop(void);
