@@ -47,3 +47,8 @@ Client_free(Client *client) {
     StringBuffer_free(client->buffer);
     free(client);
 }
+
+int
+equals_Client_Socket(Client *c1, Client *c2) {
+    return (c1->socket == c2->socket ? 0 : -1);
+}

@@ -35,4 +35,7 @@ Client
 void
 Client_free(Client *client);
 
+int
+equals_Client_Socket(Client *c1, Client *c2);
+
 #endif

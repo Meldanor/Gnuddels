@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 
 #include <poll.h>
 
@@ -42,7 +43,17 @@
 // Methods only called when server is starting / stopping
 // *******************************************************
 
+// File Descriptor to the serverSocket(accepting new connections)
 static int serverSocket;
+
+// Create Generic Vector storing pollfd
+DefVector(struct pollfd, poll);
+// List storing pollfd for poll()
+static pollVector *pollList;
+
+DefVector(Client, client);
+
+static clientVector *clientList;
 
 int init(int argc, char **args) {
 
@@ -59,6 +70,8 @@ int init(int argc, char **args) {
     if (initPoll() == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
+    
+    clientList = clientVector_construct(8);
     printf("Gnuddels-Server started on the port %s!\n", port);
 
     return EXIT_SUCCESS;
@@ -141,9 +154,6 @@ int initConnection(char *port) {
 
     return EXIT_SUCCESS;
 }
-
-DefVector(struct pollfd, poll);
-static pollVector *pollList;
 
 int
 initPoll() {
@@ -242,8 +252,11 @@ accept_newClient() {
 
     // Accept new clients in the connection queue
     while (1) {
+        struct sockaddr_in conInfo;
+        socklen_t conInfo_len = sizeof(struct sockaddr_in);
+    
         // Get one single client from the queue
-        int clientSocket = accept(serverSocket, NULL, NULL);
+        int clientSocket = accept(serverSocket, (struct sockaddr*)(&conInfo), &conInfo_len);
         if (clientSocket < 0) {
             if (errno == EWOULDBLOCK) {
                 break;
@@ -266,8 +279,15 @@ accept_newClient() {
         pollfd.fd = clientSocket;
         pollfd.events = POLLIN;
         pollVector_add(pollList, pollfd);
+        
+        // Add client to clientList
+        // Convert client address to readable IP4 formatted string
+        // This is the standard name of all new users
+	    char *ip = inet_ntoa(conInfo.sin_addr);
+        Client *client = Client_construct(clientSocket, ip);
+        clientVector_add(clientList, *client);
 
-        printf("Client %d connected\n", clientSocket);
+        printf("Client %s connected\n", ip);
     }
     return EXIT_SUCCESS;
 }
@@ -281,10 +301,16 @@ remove_client(int socket) {
 
     // Close the socket
     close(socket);
-    struct pollfd temp;
-    temp.fd = socket;
-    // Remove it from the poll list
-    pollVector_remove(pollList, &temp, &equals_pollfd);
+    
+    // Remove registered socket from poll list
+    struct pollfd tempPollfd;
+    tempPollfd.fd = socket;
+    pollVector_remove(pollList, &tempPollfd, &equals_pollfd);
+    
+    // Remove registered Client from client list
+    Client tempClient;
+    tempClient.socket = socket;
+    clientVector_remove(clientList, &tempClient, &equals_Client_Socket);
     return EXIT_SUCCESS;
 }
 
