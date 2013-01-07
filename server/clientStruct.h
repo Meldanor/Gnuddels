@@ -38,4 +38,7 @@ Client_free(Client *client);
 int
 equals_Client_Socket(Client *c1, Client *c2);
 
+int
+equals_Client_Name(Client *c1, Client *c2);
+
 #endif

@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -51,4 +52,24 @@ Client_free(Client *client) {
 int
 equals_Client_Socket(Client *c1, Client *c2) {
     return (c1->socket == c2->socket ? 0 : -1);
+}
+
+int
+equals_Client_Name(Client *c1, Client *c2) {
+    StringBuffer *name1 = StringBuffer_construct();
+    StringBuffer_concat(name1, c1->name);
+    StringBuffer *name2 = StringBuffer_construct();
+    StringBuffer_concat(name2, c2->name);
+    
+    // Convert both names to lowercases
+    int i;
+    for(i = 0; i < name1->size; i++){
+        name1->buffer[i] = tolower(name1->buffer[i]);
+    }   
+    for(i = 0; i < name2->size; i++){
+        name2->buffer[i] = tolower(name2->buffer[i]);
+    }   
+
+    // convert lower case names
+    return (strcmp(name1->buffer, name2->buffer) == 0 ? 0 : -1);
 }

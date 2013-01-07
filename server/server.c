@@ -518,7 +518,44 @@ int command_list(Client *client, StringBuffer *command) {
 }
 
 int command_nick(Client *client, StringBuffer *command) {
-    // TODO: Implement nick command(Client changes his nick)
+
+    StringBuffer *msg = StringBuffer_construct();
+    // No arguments
+    if (command == NULL) {
+        StringBuffer_concat(msg, "ERROR: Keinen Nicknamen angegeben!");
+        sendAll(client->socket, msg->buffer, msg->size);
+        StringBuffer_free(msg);
+        return EXIT_FAILURE;
+    }
+    Client temp;
+    temp.name = command->buffer;    
+    // Search for double names
+    if (clientVector_contains(clientList, &temp, &equals_Client_Name) == EXIT_SUCCESS) {
+        StringBuffer_concat(msg, "ERROR: Es existiert bereits ein Client namens '");
+        StringBuffer_concat(msg, command->buffer);
+        StringBuffer_concat(msg, "'!");
+        sendAll(client->socket, msg->buffer, msg->size);
+        StringBuffer_free(msg);
+        return EXIT_FAILURE;
+    }
+
+    StringBuffer_concat(msg, "INFO: '");
+    StringBuffer_concat(msg, client->name);
+    StringBuffer_concat(msg, "' nennt sich nun '");
+    StringBuffer_concat(msg, command->buffer);
+    StringBuffer_concat(msg, "'.");
+    
+    client->name = strdup(command->buffer);
+    
+    // Send message to all clients
+    Client *receiver = NULL;
+    int i;
+    for(i = 0 ; i < clientList->size; ++i) {
+        receiver = clientVector_get(clientList, i);
+        sendAll(receiver->socket, msg->buffer, msg->size);
+    }
+    
+    StringBuffer_free(msg);
     return EXIT_SUCCESS;
 }
 
