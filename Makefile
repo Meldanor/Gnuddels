@@ -37,7 +37,7 @@ chatgui.o: chatgui.c
 	$(CC) -c $(CFLAGS) $(GTKCFLAGS) -o $(SERVER) $^
 	
 $(SERVER): chatserver.c
-	$(CC) chatserver.c -Wall -Iinclude -pthread -o bin/$@ server/*.c server/commands/*.c $(COMMON)
+	$(CC) chatserver.c -Wall -Iinclude -pthread -o bin/$@ server/*.c $(COMMON)
 
 .PHONY: clean
 

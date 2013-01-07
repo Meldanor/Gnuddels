@@ -48,8 +48,16 @@ Client *search_client(int socket);
 
 int read_from_client(Client *client);
 
-int is_command(Client *client,StringBuffer *msg);
+int is_command(Client *client, StringBuffer *msg);
 
-int broadcast_message(Client *client,StringBuffer *msg);
+int broadcast_message(Client *client, StringBuffer *msg);
 
-int handle_command(Client *client,StringBuffer *msg);
+int handle_command(Client *client, StringBuffer *msg);
+
+// Commands methods
+
+int command_list(Client *client, StringBuffer *command);
+
+int command_nick(Client *client, StringBuffer *command);
+
+int command_msg(Client *client, StringBuffer *command);

@@ -335,8 +335,6 @@ handle_client(int socket) {
     if (msg == NULL) {
         return EXIT_SUCCESS;
     }
-    puts("is message!");
-    puts(msg->buffer);
     if (is_command(client, msg) == EXIT_SUCCESS) {
         handle_command(client, msg);
     }
@@ -412,12 +410,6 @@ read_from_client(Client *client) {
     return EXIT_SUCCESS;
 }
 
-#define COMMAND_START '/'
-
-int is_command(Client *client, StringBuffer *msg) {
-    return msg->buffer[0] == COMMAND_START ? EXIT_SUCCESS : EXIT_FAILURE;
-}
-
 int broadcast_message(Client *client, StringBuffer *msg) {
 
     // Construct message
@@ -439,7 +431,75 @@ int broadcast_message(Client *client, StringBuffer *msg) {
     return EXIT_SUCCESS;
 }
 
+#define COMMAND_START '/'
+
+int is_command(Client *client, StringBuffer *msg) {
+    return msg->buffer[0] == COMMAND_START ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
 int handle_command(Client *client, StringBuffer *msg) {
 
+    // Skip the COMMAND_START
+    char *syntax = msg->buffer + 1;
+    // Extract the args of the command
+    char *args = strchr(syntax, ' ');
+    int syn_len = 0;
+
+    // Store the args in command buffer
+    StringBuffer *command = NULL;
+    // When command has arguments
+    if (args != NULL) {
+
+        syn_len = args - syntax;        
+        command = StringBuffer_construct();
+        StringBuffer_concat(command, args + 1);
+    }
+    else {
+        syn_len = msg->size;
+    }
+    // List command
+    if (strncmp(syntax, "list", syn_len) == 0) {
+        command_list(client, command);   
+    }
+    // Nick command
+    else if (strncmp(syntax, "nick", syn_len) == 0) {
+        command_nick(client, command);   
+    }
+    // Message command
+    else if (strncmp(syntax, "msg", syn_len) == 0) {
+        command_msg(client, command);   
+    }
+    // Unknown command!
+    else {
+        StringBuffer *errorMsg = StringBuffer_construct();
+        StringBuffer_concat(errorMsg, "ERROR: Unbekannter Befehl '");
+        StringBuffer_concat(errorMsg, syntax);
+        StringBuffer_concat(errorMsg, "'!");
+        sendAll(client->socket, errorMsg->buffer, errorMsg->size);
+        StringBuffer_free(errorMsg);
+    }
+
+    // Free temp memory
+    if (command != NULL)
+        StringBuffer_free(command);
+    return EXIT_SUCCESS;
+}
+
+// ***********************************
+// Command methods
+// ***********************************
+
+int command_list(Client *client, StringBuffer *command) {
+    // TODO: Implement list command (display all connected clients)    
+    return EXIT_SUCCESS;   
+}
+
+int command_nick(Client *client, StringBuffer *command) {
+    // TODO: Implement nick command(Client changes his nick)
+    return EXIT_SUCCESS;
+}
+
+int command_msg(Client *client, StringBuffer *command) {
+    // TODO: Implement msg command(one client whispering another client)
     return EXIT_SUCCESS;
 }
