@@ -335,8 +335,6 @@ handle_client(int socket) {
     if (msg == NULL) {
         return EXIT_SUCCESS;
     }
-    puts(msg->buffer);
-    puts(client->buffer->buffer);
     StringBuffer_free(msg);
     return EXIT_SUCCESS;
 }
