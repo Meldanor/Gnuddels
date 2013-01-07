@@ -227,7 +227,7 @@ void clientLoop(void) {
             }
             // Unregistered poll event was thrown
             else {
-                fprintf(stderr, "Unkown poll event %d! Client is stopping\n", pollfd->revents);
+                fprintf(stderr, "Unkown poll event %d! Client is stopping", pollfd->revents);
                 return;
             }
         }
@@ -259,7 +259,6 @@ int read_from_server(void ) {
 }
 
 int read_from_gui(void) {
-    puts("Gui sent something...");
     int bytes_read = read(infd, inBuffer, IN_BUFFER_SIZE);
     if (bytes_read == 0) {
         puts("Gui closed...");

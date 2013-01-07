@@ -314,6 +314,8 @@ remove_client(int socket) {
     return EXIT_SUCCESS;
 }
 
+#define MSG_DELIMITER '\n'
+
 int
 handle_client(int socket) {
 
@@ -328,14 +330,43 @@ handle_client(int socket) {
     if (res != EXIT_SUCCESS)
         return res;
         
-    // TODO: Implement the handeling of the received message
-
+    // Try to extract a single message from the buffer
+    StringBuffer *msg = extract_message(client);
+    if (msg == NULL) {
+        return EXIT_SUCCESS;
+    }
+    puts(msg->buffer);
+    puts(client->buffer->buffer);
+    StringBuffer_free(msg);
     return EXIT_SUCCESS;
 }
 
 // ***********************************
 // Methods for client input handeling
 // ***********************************
+
+StringBuffer
+*extract_message(Client *client) {
+    // If MSG_DELIMITER is part of the string, the client has sendet a complete message
+    char *subString = strchr(client->buffer->buffer, MSG_DELIMITER);
+    if (subString == NULL) {
+        return NULL;
+    }
+    // Extract single message from buffer
+    // Calculate the length of the message
+    int len = subString - client->buffer->buffer;
+    // Copy mesage to temponary buffer
+    StringBuffer *msg = StringBuffer_construct_n(len);
+    StringBuffer_concat_n(msg, client->buffer->buffer, len);
+    
+    // Delete the leading \n
+    subString = subString + 1;
+    // Regorganize buffer by moving the rest of the buffer without the message to the beginning of the buffer
+    memmove(client->buffer->buffer, subString, client->buffer->size - (len + 1));
+    client->buffer->size = client->buffer->size - (len + 1);
+    client->buffer->buffer[client->buffer->size] = '\0';
+    return msg;
+}
 
 Client
 *search_client(int socket) {
@@ -349,7 +380,6 @@ Client
     }
     return client;
 }
-
 
 #define IN_BUFFER_SIZE 4096
 static char inBuffer[IN_BUFFER_SIZE + 1] = {0};

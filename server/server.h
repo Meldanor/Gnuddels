@@ -42,6 +42,8 @@ int handle_client(int socket);
 
 // Methods for client input handeling
 
+StringBuffer *extract_message(Client *client);
+
 Client *search_client(int socket);
 
 int read_from_client(Client *client);
