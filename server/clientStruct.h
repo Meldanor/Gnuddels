@@ -16,23 +16,23 @@
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef CLIENTSTRUCT_H
+#define CLIENTSTRUCT_H
+
 #include <stdbool.h>
 #include <stdlib.h>
+#include "../common/StringBuffer.h"
 
-#define IN_BUFFER_SIZE 4096
-#define OUT_BUFFER_SIZE 4096
-
-struct client {
+typedef struct Client {
     int socket;
-    bool isConnected;
-    struct sockaddr_in *conInfo;
-    char *inBuffer;
-    size_t inBufferSize;
-    char *outBuffer;
-    size_t outBufferSize;
-    int position;
-};
+    StringBuffer *buffer;
+    char *name;
+} Client;
 
-int createClientStruct(struct client *client, int clientSocket, struct sockaddr_in *conInfo);
+Client
+*Client_construct(int clientSocket, char *name);
 
-void freeClient(struct client *client);
+void
+Client_free(Client *client);
+
+#endif

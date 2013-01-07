@@ -17,6 +17,8 @@
  */
 
 #include <stddef.h>
+#ifndef STRINGBUFFER_h
+#define STRINGBUFFER_h
 
 typedef struct StringBuffer {
     char *buffer;
@@ -44,3 +46,5 @@ StringBuffer_free(StringBuffer *ptr);
 
 void
 StringBuffer_clear(StringBuffer *ptr);
+
+#endif

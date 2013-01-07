@@ -23,60 +23,27 @@
 #include <string.h>
 #include <unistd.h>
 
-// function to create a struct for multiplexing I/O
-int createClientStruct(struct client *client, int clientSocket, struct sockaddr_in *conInfo) {
-    // assign values
-    client->isConnected = true;
+Client
+*Client_construct(int clientSocket, char *name) {
+    Client *client = malloc(sizeof(client));
+    if (client == NULL) {
+        perror("Insufficent memory!");
+        return NULL;
+    }
     client->socket = clientSocket;
-    client->conInfo = conInfo;
-
-    // create buffer and assign values
-    char *ptr;
-
-    // in buffer
-    ptr = calloc(sizeof(char), IN_BUFFER_SIZE + 1);
-    if (ptr == NULL) {
-        free(client);
-        perror("Can't allocate memory for client in buffer");
-        return EXIT_FAILURE;
+    client->name = name;
+    StringBuffer *buffer = StringBuffer_construct_n(4096);
+    if (buffer == NULL) {
+        return NULL;
     }
-    client->inBuffer = ptr;
-    client->inBufferSize = IN_BUFFER_SIZE;
-
-    // out buffer
-    ptr = calloc(sizeof(char), OUT_BUFFER_SIZE + 1);
-    if (ptr == NULL) {
-        free(client);
-        free(client);
-        perror("Can't allocate memory for client in buffer");
-        return EXIT_FAILURE;
-    }
-    client->outBuffer = ptr;
-    client->outBufferSize = OUT_BUFFER_SIZE;
-
-    return EXIT_SUCCESS;
+    client->buffer = buffer;
+    
+    return client;
 }
 
-/* Function to free memory and clear up the struct */
-void freeClient(struct client *client) {
-    // Nothing to do
-    if (client == NULL) {
-        return;
-    }
-
-    close(client->socket);
-    // free inBuffer
-    if (client->inBuffer != NULL) {
-        free(client->inBuffer);
-    }
-    // free outBuffer
-    if (client->outBuffer != NULL) {
-        free(client->outBuffer);
-    }
-    // free information about the client connection
-    if (client->conInfo != NULL) {
-        free(client->conInfo);
-    }
-    // free the struct itself
+void
+Client_free(Client *client) {
+    free(client->name);
+    StringBuffer_free(client->buffer);
     free(client);
 }

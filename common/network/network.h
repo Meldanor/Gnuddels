@@ -15,7 +15,12 @@
  * You should have received a copy of the GNU General Public License
  * along with Gnuddels.  If not, see <http://www.gnu.org/licenses/>.
  */
+ 
+#ifndef NETWORK_h
+#define NETWORK_h
 
 int transferFile(int source, int destination, char *buffer);
 
 int sendAll(int dest, char *data, int dataLength);
+
+#endif
