@@ -47,3 +47,9 @@ StringBuffer *extract_message(Client *client);
 Client *search_client(int socket);
 
 int read_from_client(Client *client);
+
+int is_command(Client *client,StringBuffer *msg);
+
+int broadcast_message(Client *client,StringBuffer *msg);
+
+int handle_command(Client *client,StringBuffer *msg);

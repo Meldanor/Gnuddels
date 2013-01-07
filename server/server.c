@@ -335,6 +335,15 @@ handle_client(int socket) {
     if (msg == NULL) {
         return EXIT_SUCCESS;
     }
+    puts("is message!");
+    puts(msg->buffer);
+    if (is_command(client, msg) == EXIT_SUCCESS) {
+        handle_command(client, msg);
+    }
+    else {
+        broadcast_message(client, msg);
+    }
+    
     StringBuffer_free(msg);
     return EXIT_SUCCESS;
 }
@@ -403,3 +412,34 @@ read_from_client(Client *client) {
     return EXIT_SUCCESS;
 }
 
+#define COMMAND_START '/'
+
+int is_command(Client *client, StringBuffer *msg) {
+    return msg->buffer[0] == COMMAND_START ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+
+int broadcast_message(Client *client, StringBuffer *msg) {
+
+    // Construct message
+    StringBuffer *temp = StringBuffer_construct_n(msg->size);
+    StringBuffer_concat(temp, "[");
+    StringBuffer_concat(temp, client->name);
+    StringBuffer_concat(temp, "]: ");
+    StringBuffer_concat(temp, msg->buffer);
+    
+    // Send message to all clients
+    Client *receiver = NULL;
+    int i;
+    for(i = 0 ; i < clientList->size; ++i) {
+        receiver = clientVector_get(clientList, i);
+        sendAll(receiver->socket, temp->buffer, temp->size);
+    }
+    
+    free(temp);
+    return EXIT_SUCCESS;
+}
+
+int handle_command(Client *client, StringBuffer *msg) {
+
+    return EXIT_SUCCESS;
+}
