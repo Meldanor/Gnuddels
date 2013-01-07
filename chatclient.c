@@ -27,36 +27,20 @@
 
 
 int main(int argc, char *args[]) {
-    // Start 
-    // (C) 2012 Timo Lindhorst <lindhors@ivs.cs.ovgu.de>  
-    // Copied from original 
-    
 	// Pass these to gui_start() and use them instead of stdin/stdout.
 	int infd, outfd;
-
-	char buf[BUFSIZE];
 
 	// start GUI
 	if((gui_start(&infd, &outfd)) < 0) {
 		fprintf(stderr, "Failed to start GUI -- exiting\n");
 		return -1;
 	}
-	
-    if (initClient(argc, args) == EXIT_FAILURE)
+
+    if (initClient(argc, args, infd, outfd) == EXIT_FAILURE)
         return EXIT_FAILURE;
-    
-	while (1) {
-		int len = read(infd, buf, BUFSIZE);  // read input from GUI
-		if (len <= 0) {
-			printf("GUI closed\n");
-			break;
-		}
-		write(outfd, buf, len);	 // write output to GUI
-	}
-    // End
-    // (C) 2012 Timo Lindhorst <lindhors@ivs.cs.ovgu.de>  
-    // Copied from original 
-    
+
+    clientLoop();
+
     stopClient();
 	return EXIT_SUCCESS;
 }

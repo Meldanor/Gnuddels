@@ -18,13 +18,20 @@
   
 // Methods only called when client is starting / stopping
 
-int initClient(int argc, char **args);
+int initClient(int argc, char **args, int infd_, int outfd_);
 
 int parseArguments(int argc, char **args, char **host, char **port);
 
 int initConnection(char *host, char *port);
 
-int initPoll();
+int initPoll(void);
 
 void stopClient(void);
 
+// Methods called while the client is running
+
+void clientLoop(void);
+
+int read_from_server(void);
+
+int read_from_gui(void);

@@ -43,10 +43,16 @@
 // *******************************************************
 
 static int clientSocket;
+static int infd;
+static int outfd;
 
-int initClient(int argc, char **args) {
+int initClient(int argc, char **args, int infd_, int outfd_) {
 
     puts("Start Client...");
+    
+    infd = infd_;
+    outfd = outfd_;
+    
     char *port;
     char *host;
     puts("Parse Arguments from console...");
@@ -140,17 +146,22 @@ DefVector(struct pollfd, poll);
 static pollVector *pollList;
 
 int
-initPoll() {
+initPoll(void) {
     // init list for poll structs
     pollList = pollVector_construct(1);
     if (pollList == NULL) {
         return EXIT_FAILURE;
     }
     // add pollstruct to list
-    struct pollfd clientPollfd;
-    clientPollfd.fd = clientSocket;
-    clientPollfd.events = POLLIN;    
-    pollVector_add(pollList, clientPollfd);
+    struct pollfd clientPollFD;
+    clientPollFD.fd = clientSocket;
+    clientPollFD.events = POLLIN;    
+    pollVector_add(pollList, clientPollFD);
+    
+    struct pollfd GUIInputFD;
+    GUIInputFD.fd = infd;
+    GUIInputFD.events = POLLIN;    
+    pollVector_add(pollList, GUIInputFD);
     
     return EXIT_SUCCESS;
 }
@@ -161,3 +172,102 @@ void stopClient(void) {
     puts("Close socket...");
     close(clientSocket);
 }
+
+// ***************************************
+// Methods called while client is running
+// ***************************************
+
+#define INFINITE_TIMEOUT -1
+
+void clientLoop(void) {
+
+    bool clientIsRunning = true;    
+    while (clientIsRunning) {
+        // res stores the numbers of file descriptors throwed an event
+        int res = poll(pollList->elements, pollList->size, INFINITE_TIMEOUT);
+        // Poll returns without any events
+        if (res == 0) {
+            continue;
+        }
+        if (res < 0) {
+            perror("poll failed!");
+            clientIsRunning = false;
+            break;
+        }
+        int i;
+        struct pollfd *pollfd = NULL;
+        for (i = 0 ; i < pollList->size; ++i) {
+            pollfd = pollVector_get(pollList, i);
+            // This fd didn't fired an event
+            if (pollfd->revents == 0) {
+                continue;
+            }
+            // The fd want to send something
+            if ((pollfd->revents & POLLIN) == POLLIN) {
+                // User has typed some text into the GUI
+                if (pollfd->fd == infd) {
+                    if (read_from_gui() == EXIT_FAILURE) {
+                        clientIsRunning = false;
+                        break;
+                    }
+                }
+                // Server has sent something to the client
+                else if(pollfd->fd == clientSocket) {
+                    if (read_from_server() == EXIT_FAILURE) {
+                        clientIsRunning = false;
+                        break;
+                    }
+                }
+                // Unregistered FD sent something
+                else {
+                    perror("Unknown FD fired event!");
+                    clientIsRunning = false;
+                    break;
+                }
+            }
+            // Unregistered poll event was thrown
+            else {
+                fprintf(stderr, "Unkown poll event %d! Client is stopping\n", pollfd->revents);
+                return;
+            }
+        }
+    }
+}
+#define IN_BUFFER_SIZE 4096
+static char inBuffer[IN_BUFFER_SIZE + 1] = {0};
+
+int read_from_server(void ) {
+    //while(1) {
+        int bytes_read = read(clientSocket, inBuffer, IN_BUFFER_SIZE);
+        if (bytes_read == 0) {
+            perror("server closed connection!");
+            return EXIT_FAILURE;
+        }
+        if (bytes_read < 0) {
+        /*    if (errno == EWOULDBLOCK) {
+                return EXIT_SUCCESS;
+            }*/
+            perror("read failed!");
+            return EXIT_FAILURE;
+        }
+        // Copy received message to the client buffer
+        write(outfd, inBuffer, bytes_read);
+        
+    //}
+    
+    return EXIT_SUCCESS;
+}
+
+int read_from_gui(void) {
+    puts("Gui sent something...");
+    int bytes_read = read(infd, inBuffer, IN_BUFFER_SIZE);
+    if (bytes_read == 0) {
+        puts("Gui closed...");
+        return EXIT_FAILURE;
+    }
+    if (bytes_read < 0) {
+        perror("read failed!");
+        return EXIT_FAILURE;
+    }
+    sendAll(clientSocket, inBuffer, bytes_read);
+} 

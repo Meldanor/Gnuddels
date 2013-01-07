@@ -240,7 +240,7 @@ serverLoop(void) {
             }
             // Unregistered poll event was thrown
             else {
-                fprintf(stderr, "Unkown poll event %d! Server is stopping", pollfd->revents);
+                fprintf(stderr, "Unkown poll event %d! Server is stopping\n", pollfd->revents);
                 return;
             }
         }
@@ -313,7 +313,6 @@ remove_client(int socket) {
     clientVector_remove(clientList, &tempClient, &equals_Client_Socket);
     return EXIT_SUCCESS;
 }
-
 
 int
 handle_client(int socket) {
