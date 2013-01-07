@@ -227,7 +227,7 @@ void clientLoop(void) {
             }
             // Unregistered poll event was thrown
             else {
-                fprintf(stderr, "Unkown poll event %d! Client is stopping", pollfd->revents);
+                fprintf(stderr, "Unkown poll event %d! Client is stopping\n", pollfd->revents);
                 return;
             }
         }
@@ -237,6 +237,7 @@ void clientLoop(void) {
 static char inBuffer[IN_BUFFER_SIZE + 1] = {0};
 
 int read_from_server(void ) {
+    puts("Server sent something..");
     //while(1) {
         int bytes_read = read(clientSocket, inBuffer, IN_BUFFER_SIZE);
         if (bytes_read == 0) {
@@ -252,6 +253,7 @@ int read_from_server(void ) {
         }
         // Copy received message to the client buffer
         write(outfd, inBuffer, bytes_read);
+        write(outfd, "\n", 1);
         
     //}
     
