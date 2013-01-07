@@ -490,8 +490,31 @@ int handle_command(Client *client, StringBuffer *msg) {
 // ***********************************
 
 int command_list(Client *client, StringBuffer *command) {
-    // TODO: Implement list command (display all connected clients)    
-    return EXIT_SUCCESS;   
+    StringBuffer *msg = StringBuffer_construct();
+    StringBuffer_concat(msg, "Verbundene Clients(");
+    char temp[15];
+    sprintf(temp, "%d", clientList->size);
+    StringBuffer_concat(msg, temp);
+    StringBuffer_concat(msg, ")\n");
+    int i = 0;
+    // Build message
+    for (i = 0; i < clientList->size - 1; ++i) {
+        StringBuffer_concat(msg, "[");     
+        StringBuffer_concat(msg, clientVector_get(clientList, i)->name);
+        StringBuffer_concat(msg, "]");
+        StringBuffer_concat(msg, ", ");
+    }
+    // Add last one without ,
+    StringBuffer_concat(msg, "[");     
+    StringBuffer_concat(msg, clientVector_get(clientList, i)->name);
+    StringBuffer_concat(msg, "]");
+    
+    // Send message to client
+    sendAll(client->socket, msg->buffer, msg->size);
+
+    StringBuffer_free(msg);
+    
+    return EXIT_SUCCESS;
 }
 
 int command_nick(Client *client, StringBuffer *command) {
