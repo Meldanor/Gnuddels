@@ -314,12 +314,51 @@ remove_client(int socket) {
     return EXIT_SUCCESS;
 }
 
+
 int
 handle_client(int socket) {
-    // TODO: Improve buffer management
-    char buffer[4096] = {0};
+
+    // Get the client registered to the socket
+    Client *client = search_client(socket);
+    if (client == NULL) {
+        perror("Unregistered client socket found! This is not in the list!");
+        return EXIT_FAILURE;
+    }
+    // Read the complete input of the client
+    int res = read_from_client(client);
+    if (res != EXIT_SUCCESS)
+        return res;
+        
+    // TODO: Implement the handeling of the received message
+
+    return EXIT_SUCCESS;
+}
+
+// ***********************************
+// Methods for client input handeling
+// ***********************************
+
+Client
+*search_client(int socket) {
+    Client *client = NULL;    
+    int i;
+    for (i = 0 ; i < clientList->size; ++i) {
+        if (clientList->elements[i].socket == socket) {
+            client = &(clientList->elements[i]);
+            break;
+        }
+    }
+    return client;
+}
+
+
+#define IN_BUFFER_SIZE 4096
+static char inBuffer[IN_BUFFER_SIZE + 1] = {0};
+
+int
+read_from_client(Client *client) {
     while(1) {
-        int bytes_read = read(socket, buffer, 4096);
+        int bytes_read = read(client->socket, inBuffer, IN_BUFFER_SIZE);
         if (bytes_read == 0) {
             return CLIENT_DISCONNECTED;
         }
@@ -330,15 +369,10 @@ handle_client(int socket) {
             perror("read failed!");
             return EXIT_FAILURE;
         }
-        printf("Client %d sent something\n", socket);
+        // Copy received message to the client buffer
+        StringBuffer_concat_n(client->buffer, inBuffer, bytes_read);
     }
-
-    return EXIT_SUCCESS;
-}
-
-int
-read_from_client(int socket) {
-    // TODO: Implement reading from a client
+    
     return EXIT_SUCCESS;
 }
 

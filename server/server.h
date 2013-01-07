@@ -39,3 +39,9 @@ int accept_newClient();
 int remove_client(int socket);
 
 int handle_client(int socket);
+
+// Methods for client input handeling
+
+Client *search_client(int socket);
+
+int read_from_client(Client *client);
