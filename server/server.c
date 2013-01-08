@@ -427,7 +427,7 @@ int broadcast_message(Client *client, StringBuffer *msg) {
         sendAll(receiver->socket, temp->buffer, temp->size);
     }
     
-    free(temp);
+    StringBuffer_free(temp);
     return EXIT_SUCCESS;
 }
 
