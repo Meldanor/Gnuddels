@@ -560,6 +560,71 @@ int command_nick(Client *client, StringBuffer *command) {
 }
 
 int command_msg(Client *client, StringBuffer *command) {
-    // TODO: Implement msg command(one client whispering another client)
+
+    // No nickname in args
+    if (command == NULL) {
+        StringBuffer *errMsg = StringBuffer_construct();
+        StringBuffer_concat(errMsg, "ERROR: Keinen Nicknamen angegeben!");
+        sendAll(client->socket, errMsg->buffer, errMsg->size);
+        StringBuffer_free(errMsg);
+        return EXIT_FAILURE;
+    }
+    // Look if there is an message to whisper
+    char *whisperText = strchr(command->buffer, ' ');
+    if (whisperText == NULL) {
+        StringBuffer *errMsg = StringBuffer_construct();
+        StringBuffer_concat(errMsg, "Keine Nachricht angegeben!");
+        sendAll(client->socket, errMsg->buffer, errMsg->size);
+        StringBuffer_free(errMsg);
+        return EXIT_FAILURE;
+    }
+    // Split string at position
+    *whisperText = '\0';
+    whisperText = whisperText + 1;
+    // Looking for receiver
+    Client temp;
+    temp.name = command->buffer;
+    Client *receiver = NULL;
+    int i = 0;
+    for (i = 0 ; i < clientList->size; ++i) {
+        receiver = clientVector_get(clientList, i);
+        // Check if names are equals
+        if (equals_Client_Name(&temp, receiver) == 0) {
+            break;
+        }
+        else {
+            receiver = NULL;
+        }
+    }
+    // Receiver not found
+    if (receiver == NULL) {
+        StringBuffer *errMsg = StringBuffer_construct();
+        StringBuffer_concat(errMsg, "ERROR: Client '");
+        StringBuffer_concat(errMsg, command->buffer);
+        StringBuffer_concat(errMsg, "' ist nicht online!");
+        sendAll(client->socket, errMsg->buffer, errMsg->size);
+        StringBuffer_free(errMsg);
+        return EXIT_FAILURE;
+    }
+
+    // Build message for caller
+    // Whisper message format: [me -> RECEIVER]: MESSAGE
+    StringBuffer *msg = StringBuffer_construct();
+    StringBuffer_concat(msg, "[me -> ");
+    StringBuffer_concat(msg, receiver->name);
+    StringBuffer_concat(msg, "]: ");
+    StringBuffer_concat(msg, whisperText);
+    sendAll(client->socket, msg->buffer, msg->size);
+    StringBuffer_clear(msg);
+    
+    // Build message for receiver
+    // Whisper message format: [CALLER -> me]: MESSAGE
+    StringBuffer_concat(msg, "[");
+    StringBuffer_concat(msg, client->name);
+    StringBuffer_concat(msg, " -> me]: ");
+    StringBuffer_concat(msg, whisperText);
+    sendAll(receiver->socket, msg->buffer, msg->size);
+    StringBuffer_free(msg);
+
     return EXIT_SUCCESS;
 }
