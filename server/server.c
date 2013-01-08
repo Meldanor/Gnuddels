@@ -286,7 +286,13 @@ accept_newClient() {
 	    char *ip = inet_ntoa(conInfo.sin_addr);
         Client *client = Client_construct(clientSocket, ip);
         clientVector_add(clientList, *client);
-
+        
+        StringBuffer *msg = StringBuffer_construct();
+        StringBuffer_concat(msg, client->name);
+        StringBuffer_concat(msg, " ist online");
+        broadcast(msg);
+        StringBuffer_free(msg);
+        
         printf("Client %s connected\n", ip);
     }
     return EXIT_SUCCESS;
@@ -310,7 +316,19 @@ remove_client(int socket) {
     // Remove registered Client from client list
     Client tempClient;
     tempClient.socket = socket;
-    clientVector_remove(clientList, &tempClient, &equals_Client_Socket);
+    int i;
+    for (i = 0 ; i < clientList->size; ++i) {
+        if (equals_Client_Socket(&tempClient, clientVector_get(clientList, i)) == 0) {
+            clientVector_removeAt(clientList,i , &tempClient);
+            break;
+        }
+    }
+    StringBuffer *msg = StringBuffer_construct();
+    StringBuffer_concat(msg, tempClient.name);
+    StringBuffer_concat(msg, " ist offline.");
+    broadcast(msg);
+    Client_free(&tempClient);
+    StringBuffer_free(msg);
     return EXIT_SUCCESS;
 }
 
@@ -420,14 +438,18 @@ int broadcast_message(Client *client, StringBuffer *msg) {
     StringBuffer_concat(temp, msg->buffer);
     
     // Send message to all clients
-    Client *receiver = NULL;
-    int i;
-    for(i = 0 ; i < clientList->size; ++i) {
-        receiver = clientVector_get(clientList, i);
-        sendAll(receiver->socket, temp->buffer, temp->size);
-    }
+    broadcast(temp);
     
     StringBuffer_free(temp);
+    return EXIT_SUCCESS;
+}
+
+int broadcast(StringBuffer *msg) {
+    // Send message to all clients
+    int i;
+    for(i = 0 ; i < clientList->size; ++i) {
+        sendAll(clientVector_get(clientList, i)->socket, msg->buffer, msg->size);
+    }
     return EXIT_SUCCESS;
 }
 
@@ -547,13 +569,7 @@ int command_nick(Client *client, StringBuffer *command) {
     
     client->name = strdup(command->buffer);
     
-    // Send message to all clients
-    Client *receiver = NULL;
-    int i;
-    for(i = 0 ; i < clientList->size; ++i) {
-        receiver = clientVector_get(clientList, i);
-        sendAll(receiver->socket, msg->buffer, msg->size);
-    }
+    broadcast(msg);
     
     StringBuffer_free(msg);
     return EXIT_SUCCESS;

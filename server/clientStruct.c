@@ -46,7 +46,6 @@ void
 Client_free(Client *client) {
     free(client->name);
     StringBuffer_free(client->buffer);
-    free(client);
 }
 
 int

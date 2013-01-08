@@ -52,6 +52,8 @@ int is_command(Client *client, StringBuffer *msg);
 
 int broadcast_message(Client *client, StringBuffer *msg);
 
+int broadcast(StringBuffer *msg);
+
 int handle_command(Client *client, StringBuffer *msg);
 
 // Commands methods
