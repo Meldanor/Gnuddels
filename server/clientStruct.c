@@ -44,8 +44,13 @@ Client
 
 void
 Client_free(Client *client) {
-    free(client->name);
-    StringBuffer_free(client->buffer);
+    
+    if (client->name != NULL) {
+        free(client->name);
+    }
+    if (client->buffer != NULL) {      
+        StringBuffer_free(client->buffer);
+     }
 }
 
 int

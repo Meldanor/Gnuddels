@@ -94,8 +94,10 @@ StringBuffer_resize(StringBuffer *ptr, int newCapacity) {
 
 void
 StringBuffer_free(StringBuffer *ptr) {
-    free(ptr->buffer);
-    free(ptr);
+    if (ptr == NULL)
+        return;    
+    if (ptr->buffer != NULL)    
+        free(ptr->buffer);
 }
 
 void

@@ -221,7 +221,7 @@ serverLoop(void) {
                 else {
                     // Read it's input and handle it
                     int cRes = handle_client(pollfd->fd);
-                    // Client disconnected
+                    // sconnected
                     if (cRes == CLIENT_DISCONNECTED) {
                         printf("Client %d disconnected\n", pollfd->fd);
                         remove_client(pollfd->fd);
@@ -284,7 +284,7 @@ accept_newClient() {
         // Convert client address to readable IP4 formatted string
         // This is the standard name of all new users
 	    char *ip = inet_ntoa(conInfo.sin_addr);
-        Client *client = Client_construct(clientSocket, ip);
+        Client *client = Client_construct(clientSocket, strdup(ip));
         clientVector_add(clientList, *client);
         
         StringBuffer *msg = StringBuffer_construct();
@@ -326,7 +326,7 @@ remove_client(int socket) {
     StringBuffer *msg = StringBuffer_construct();
     StringBuffer_concat(msg, tempClient.name);
     StringBuffer_concat(msg, " ist offline.");
-    broadcast(msg);
+    broadcast(msg);    
     Client_free(&tempClient);
     StringBuffer_free(msg);
     return EXIT_SUCCESS;
