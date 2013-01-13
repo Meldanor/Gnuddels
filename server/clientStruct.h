@@ -33,6 +33,9 @@ Client
 *Client_construct(int clientSocket, char *name);
 
 void
+Client_setName(Client *client, char *name);
+
+void
 Client_free(Client *client);
 
 int

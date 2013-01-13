@@ -32,7 +32,7 @@ Client
         return NULL;
     }
     client->socket = clientSocket;
-    client->name = name;
+    Client_setName(client, name);
     StringBuffer *buffer = StringBuffer_construct_n(4096);
     if (buffer == NULL) {
         return NULL;
@@ -40,6 +40,14 @@ Client
     client->buffer = buffer;
     
     return client;
+}
+
+void
+Client_setName(Client *client, char *name) {
+    if (client->name != NULL) 
+        free(client->name);
+
+    client->name = strdup(name);
 }
 
 void

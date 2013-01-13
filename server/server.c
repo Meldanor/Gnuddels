@@ -263,7 +263,7 @@ accept_newClient() {
     // Convert client address to readable IP4 formatted string
     // This is the standard name of all new users
     char *ip = inet_ntoa(conInfo.sin_addr);
-    Client *client = Client_construct(clientSocket, strdup(ip));
+    Client *client = Client_construct(clientSocket, ip);
     clientVector_add(clientList, *client);
     
     StringBuffer *msg = StringBuffer_construct();
@@ -539,9 +539,9 @@ int command_nick(Client *client, StringBuffer *command) {
     StringBuffer_concat(msg, "' nennt sich nun '");
     StringBuffer_concat(msg, command->buffer);
     StringBuffer_concat(msg, "'.");
-    
-    client->name = strdup(command->buffer);
-    
+
+    Client_setName(client, command->buffer);    
+
     broadcast(msg);
     
     StringBuffer_free(msg);
