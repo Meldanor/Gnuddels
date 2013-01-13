@@ -124,16 +124,8 @@ int initConnection(char *port) {
         return EXIT_FAILURE;
     }
 
-    // Flag for nonblocking
-    int flag = 1;
-    // Set socket to be nonblocking
-    if (ioctl(serverSocket, FIONBIO, (char *)&flag) < 0) {
-        perror("ioctl() failed");
-        close(serverSocket);
-        return EXIT_FAILURE;
-    }
-    
     // Make address of the server reusable (nice for debugging)
+    int flag = 1;
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, (char *)&flag, sizeof(flag)) < 0) {
         perror("setsockopt() failed");
         close(serverSocket);
@@ -251,50 +243,36 @@ int
 accept_newClient() {
 
     // Accept new clients in the connection queue
-    while (1) {
-        struct sockaddr_in conInfo;
-        socklen_t conInfo_len = sizeof(struct sockaddr_in);
-    
-        // Get one single client from the queue
-        int clientSocket = accept(serverSocket, (struct sockaddr*)(&conInfo), &conInfo_len);
-        if (clientSocket < 0) {
-            if (errno == EWOULDBLOCK) {
-                break;
-            }
-            perror("accept failed!");
-            return EXIT_FAILURE;
-        }
+    struct sockaddr_in conInfo;
+    socklen_t conInfo_len = sizeof(struct sockaddr_in);
 
-        // Flag for nonblocking
-        int flag = 1;
-        // Set socket to be nonblocking
-        if (ioctl(clientSocket, FIONBIO, (char *)&flag) < 0) {
-            perror("ioctl() failed");
-            close(clientSocket);
-            return EXIT_FAILURE;
-        }
-
-        // Add client to pollList
-        struct pollfd pollfd;
-        pollfd.fd = clientSocket;
-        pollfd.events = POLLIN;
-        pollVector_add(pollList, pollfd);
-        
-        // Add client to clientList
-        // Convert client address to readable IP4 formatted string
-        // This is the standard name of all new users
-	    char *ip = inet_ntoa(conInfo.sin_addr);
-        Client *client = Client_construct(clientSocket, strdup(ip));
-        clientVector_add(clientList, *client);
-        
-        StringBuffer *msg = StringBuffer_construct();
-        StringBuffer_concat(msg, client->name);
-        StringBuffer_concat(msg, " ist online");
-        broadcast(msg);
-        StringBuffer_free(msg);
-        
-        printf("Client %s connected\n", ip);
+    // Get one single client from the queue
+    int clientSocket = accept(serverSocket, (struct sockaddr*)(&conInfo), &conInfo_len);
+    if (clientSocket < 0) {
+        perror("accept failed!");
+        return EXIT_FAILURE;
     }
+
+    // Add client to pollList
+    struct pollfd pollfd;
+    pollfd.fd = clientSocket;
+    pollfd.events = POLLIN;
+    pollVector_add(pollList, pollfd);
+    
+    // Add client to clientList
+    // Convert client address to readable IP4 formatted string
+    // This is the standard name of all new users
+    char *ip = inet_ntoa(conInfo.sin_addr);
+    Client *client = Client_construct(clientSocket, strdup(ip));
+    clientVector_add(clientList, *client);
+    
+    StringBuffer *msg = StringBuffer_construct();
+    StringBuffer_concat(msg, client->name);
+    StringBuffer_concat(msg, " ist online");
+    broadcast(msg);
+    StringBuffer_free(msg);
+    
+    printf("Client %s connected\n", ip);
     return EXIT_SUCCESS;
 }
 
@@ -409,22 +387,17 @@ static char inBuffer[IN_BUFFER_SIZE + 1] = {0};
 
 int
 read_from_client(Client *client) {
-    while(1) {
-        int bytes_read = read(client->socket, inBuffer, IN_BUFFER_SIZE);
-        if (bytes_read == 0) {
-            return CLIENT_DISCONNECTED;
-        }
-        if (bytes_read < 0) {
-            if (errno == EWOULDBLOCK) {
-                return EXIT_SUCCESS;
-            }
-            perror("read failed!");
-            return EXIT_FAILURE;
-        }
-        // Copy received message to the client buffer
-        StringBuffer_concat_n(client->buffer, inBuffer, bytes_read);
+    int bytes_read = read(client->socket, inBuffer, IN_BUFFER_SIZE);
+    if (bytes_read == 0) {
+        return CLIENT_DISCONNECTED;
     }
-    
+    if (bytes_read < 0) {
+        perror("read failed!");
+        return EXIT_FAILURE;
+    }
+    // Copy received message to the client buffer
+    StringBuffer_concat_n(client->buffer, inBuffer, bytes_read);
+
     return EXIT_SUCCESS;
 }
 

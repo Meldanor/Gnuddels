@@ -106,35 +106,25 @@ int initConnection(char *host, char *port) {
     hints.ai_socktype = SOCK_STREAM;    // TCP
     hints.ai_flags = 0;                 // No flag set
     hints.ai_protocol = 0;              // Any protocol of TCP is allowed
-    
+
     // Store information in struct "res"
     struct addrinfo *res;
     if (getaddrinfo(host, port, &hints, &res) == -1) {
         perror("Can't parse information for socket creation");
         return EXIT_FAILURE;
     }
-    
+
     // Create Socket with the stored information
     clientSocket = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (clientSocket < 0 ) {
         perror("Can't create new socket!");
         return EXIT_FAILURE;
     }
-/*
-    // Flag for nonblocking
-    int flag = 1;
-    // Set socket to be nonblocking
-    if (ioctl(clientSocket, FIONBIO, (char *)&flag) < 0) {
-        perror("ioctl() failed");
-        close(clientSocket);
-        return EXIT_FAILURE;
-    }
-  */  
+    
+    // Connect to server
     if (connect(clientSocket, res->ai_addr, res->ai_addrlen) < 0) {
-        //if (errno != EINPROGRESS) {
-            perror("connect() failed");
-            return EXIT_FAILURE;
-        //}
+        perror("connect() failed");
+        return EXIT_FAILURE;
     }
     // Free Memory
     freeaddrinfo(res);
@@ -237,25 +227,18 @@ void clientLoop(void) {
 static char inBuffer[IN_BUFFER_SIZE + 1] = {0};
 
 int read_from_server(void ) {
-    puts("Server sent something..");
-    //while(1) {
-        int bytes_read = read(clientSocket, inBuffer, IN_BUFFER_SIZE);
-        if (bytes_read == 0) {
-            perror("server closed connection!");
-            return EXIT_FAILURE;
-        }
-        if (bytes_read < 0) {
-        /*    if (errno == EWOULDBLOCK) {
-                return EXIT_SUCCESS;
-            }*/
-            perror("read failed!");
-            return EXIT_FAILURE;
-        }
-        // Copy received message to the client buffer
-        write(outfd, inBuffer, bytes_read);
-        write(outfd, "\n", 1);
-        
-    //}
+    int bytes_read = read(clientSocket, inBuffer, IN_BUFFER_SIZE);
+    if (bytes_read == 0) {
+        perror("server closed connection!");
+        return EXIT_FAILURE;
+    }
+    if (bytes_read < 0) {
+        perror("read failed!");
+        return EXIT_FAILURE;
+    }
+    // Copy received message to the client buffer
+    write(outfd, inBuffer, bytes_read);
+    write(outfd, "\n", 1);
     
     return EXIT_SUCCESS;
 }
